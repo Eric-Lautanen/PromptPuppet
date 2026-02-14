@@ -1,0 +1,16 @@
+# Rust build stuff
+/target
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.rs.bk
+*.bak
+
+# Temp / editor crap
+*.swp
+*.swo
+.idea
+.vscode
