@@ -1,0 +1,80 @@
+{
+  "panels": [
+    {
+      "id": "visual_style_environment",
+      "title": "🎨 Visual Style & Environment",
+      "icon": "🎨",
+      "type": "composite",
+      "collapsible": true,
+      "default_open": false,
+      "components": [
+        {
+          "id": "style_preset",
+          "label": "Visual Style",
+          "type": "dropdown",
+          "data_source": "styles.json"
+        },
+        {
+          "id": "environment",
+          "label": "Environment",
+          "type": "searchable_dropdown",
+          "data_source": "environments.json"
+        }
+      ]
+    },
+    {
+      "id": "character_attributes",
+      "title": "👤 Character Attributes",
+      "icon": "👤",
+      "type": "options_grid",
+      "data_source": "character_attributes.json",
+      "collapsible": true,
+      "default_open": false
+    },
+    {
+      "id": "clothing_style",
+      "title": "👔 Clothing & Style",
+      "icon": "👔",
+      "type": "options_grid",
+      "data_source": "clothing.json",
+      "collapsible": true,
+      "default_open": false
+    },
+    {
+      "id": "pose_presets",
+      "title": "🎭 Pose Presets",
+      "icon": "🎭",
+      "type": "preset_selector",
+      "data_source": "poses.json",
+      "collapsible": true,
+      "default_open": false
+    },
+    {
+      "id": "expression_presets",
+      "title": "😊 Expression Presets",
+      "icon": "😊",
+      "type": "preset_selector",
+      "data_source": "expressions.json",
+      "collapsible": true,
+      "default_open": false
+    },
+    {
+      "id": "motion_animation",
+      "title": "🎬 Motion & Animation",
+      "icon": "🎬",
+      "type": "controls",
+      "data_source": "motion.json",
+      "collapsible": true,
+      "default_open": false
+    },
+    {
+      "id": "global_settings",
+      "title": "⚙️ Global Settings",
+      "icon": "⚙️",
+      "type": "controls",
+      "data_source": "global.json",
+      "collapsible": true,
+      "default_open": false
+    }
+  ]
+}

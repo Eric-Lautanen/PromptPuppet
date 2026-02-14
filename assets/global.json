@@ -1,0 +1,109 @@
+{
+  "include_prompt": "video",
+  "settings": [
+    {
+      "id": "framing",
+      "label": "Framing",
+      "type": "dropdown",
+      "options": [
+        { "value": "Full Body", "display": "Full Body" },
+        { "value": "Three-Quarter", "display": "Three-Quarter (Knees up)" },
+        { "value": "Medium Shot", "display": "Medium Shot (Waist up)" },
+        { "value": "Close-Up", "display": "Close-Up (Chest up)" },
+        { "value": "Extreme Close-Up", "display": "Extreme Close-Up (Face only)" },
+        { "value": "Headshot", "display": "Headshot (Face & Shoulders)" },
+        { "value": "Wide Shot", "display": "Wide Shot (Full body + space)" },
+        { "value": "Extreme Wide", "display": "Extreme Wide (Vast landscape)" },
+        { "value": "Establishing Shot", "display": "Establishing Shot" },
+        { "value": "Master Shot", "display": "Master Shot (Entire scene)" },
+        { "value": "Two-Shot", "display": "Two-Shot (Two people)" },
+        { "value": "Macro", "display": "Macro (Tiny details)" }
+      ],
+      "default": "Full Body"
+    },
+    {
+      "id": "camera_angle",
+      "label": "Camera Angle",
+      "type": "dropdown",
+      "options": [
+        { "value": "Eye Level", "display": "Eye Level (Neutral)" },
+        { "value": "Low Angle", "display": "Low Angle (Heroic)" },
+        { "value": "High Angle", "display": "High Angle (Diminishing)" },
+        { "value": "Dutch Angle", "display": "Dutch Angle (Uneasy/Tilted)" },
+        { "value": "Over the Shoulder", "display": "Over the Shoulder" },
+        { "value": "Bird's Eye", "display": "Bird's Eye (Top down)" },
+        { "value": "Worm's Eye", "display": "Worm's Eye (Floor level)" },
+        { "value": "Profile", "display": "Profile (Side view)" },
+        { "value": "Three-Quarter View", "display": "Three-Quarter View (Angled)" },
+        { "value": "Canted", "display": "Canted (Stylized tilt)" },
+        { "value": "Snorricam", "display": "Snorricam (Attached to actor)" }
+      ],
+      "default": "Eye Level"
+    },
+    {
+      "id": "camera_movement",
+      "label": "Camera Movement",
+      "type": "dropdown",
+      "options": [
+        { "value": "Locked off", "display": "Locked off (Static)" },
+        { "value": "Subtle drift", "display": "Subtle drift" },
+        { "value": "Pan", "display": "Pan (Horizontal)" },
+        { "value": "Tilt", "display": "Tilt (Vertical)" },
+        { "value": "Slow zoom in", "display": "Slow zoom in" },
+        { "value": "Slow zoom out", "display": "Slow zoom out" },
+        { "value": "Handheld", "display": "Handheld (Documentary style)" },
+        { "value": "Orbital", "display": "Orbital (360 rotation)" },
+        { "value": "Dolly In", "display": "Dolly In" },
+        { "value": "Dolly Out", "display": "Dolly Out" },
+        { "value": "Dolly Zoom", "display": "Dolly Zoom (Vertigo effect)" },
+        { "value": "Tracking shot", "display": "Tracking / Steadicam" },
+        { "value": "Crane / Jib", "display": "Crane / Jib (Sweeping)" },
+        { "value": "Whip Pan", "display": "Whip Pan (Fast blur)" }
+      ],
+      "default": "Locked off"
+    },
+    {
+      "id": "lighting",
+      "label": "Lighting Style",
+      "type": "dropdown",
+      "options": [
+        { "value": "Natural", "display": "Natural (Soft daylight)" },
+        { "value": "Studio", "display": "Studio (3-point)" },
+        { "value": "Golden Hour", "display": "Golden Hour (Sunset)" },
+        { "value": "Blue Hour", "display": "Blue Hour (Twilight)" },
+        { "value": "High Key", "display": "High Key (Bright/Optimistic)" },
+        { "value": "Low Key", "display": "Low Key (Dark/Moody)" },
+        { "value": "Rembrandt", "display": "Rembrandt (Classic)" },
+        { "value": "Backlit", "display": "Backlit / Silhouette" },
+        { "value": "Neon", "display": "Neon / Cyberpunk" },
+        { "value": "Chiaroscuro", "display": "Chiaroscuro (High contrast)" },
+        { "value": "Motivated", "display": "Motivated (In-scene source)" },
+        { "value": "Strobe", "display": "Strobe / Flashing" }
+      ],
+      "default": "Natural"
+    },
+    {
+      "id": "audio",
+      "label": "Audio & Soundscape",
+      "type": "dropdown",
+      "options": [
+        { "value": "Silent", "display": "Silent" },
+        { "value": "Voice only", "display": "Voice Only (Dry)" },
+        { "value": "Voice + Ambient", "display": "Voice + Ambient (Natural)" },
+        { "value": "Voice + Music", "display": "Voice + Music (Narrative)" },
+        { "value": "Voice + Foley", "display": "Voice + Sound Effects" },
+        { "value": "Voice + Ambient + Music", "display": "Voice + Ambient + Music" },
+        { "value": "Voice + Music + Foley", "display": "Voice + Music + Foley" },
+        { "value": "Ambient only", "display": "Ambient Only (Nature/City)" },
+        { "value": "Music only", "display": "Music Only (Cinematic)" },
+        { "value": "Music + Ambient", "display": "Music + Ambient" },
+        { "value": "Foley only", "display": "Foley Only (ASMR style)" },
+        { "value": "Ambient + Music + Foley", "display": "Atmospheric (No Voice)" },
+        { "value": "Full Mix", "display": "Full Mix (Voice+Music+Amb+Foley)" },
+        { "value": "Muffled", "display": "Muffled / Underwater" },
+        { "value": "Echo", "display": "Heavy Reverb / Hallway" }
+      ],
+      "default": "Voice + Ambient"
+    }
+  ]
+}
