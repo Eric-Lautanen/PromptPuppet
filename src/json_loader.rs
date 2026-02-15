@@ -1,4 +1,15 @@
 // json_loader.rs
+// 
+// This module handles loading and parsing of JSON assets including:
+// - Pose libraries with 3D coordinates [x, y, z]
+// - Expression libraries
+// - Style libraries
+// - Options and settings
+//
+// 3D Coordinate Support:
+// The StickFigure struct now uses Vec<f32> to support both legacy 2D poses [x, y]
+// and new 3D poses [x, y, z]. The to_pose() method automatically handles both formats.
+
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -122,7 +133,9 @@ pub struct GenericItem {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct StickFigure { pub points: HashMap<String, [f32; 2]> }
+pub struct StickFigure { 
+    pub points: HashMap<String, Vec<f32>>  // Support both [x,y] and [x,y,z]
+}
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Semantics { pub prompt: String }
@@ -130,15 +143,32 @@ pub struct Semantics { pub prompt: String }
 impl GenericItem {
     pub fn to_pose(&self, cx: f32, cy: f32, scale: f32) -> Option<crate::pose::Pose> {
         let sf = self.stick_figure.as_ref()?;
-        let pt = |name: &str| -> (f32, f32) {
-            sf.points.get(name).map(|p| (cx + p[0] * scale, cy - p[1] * scale)).unwrap_or((cx, cy))
+        
+        // Helper to get point with 3D support
+        let pt = |name: &str| -> (f32, f32, f32) {
+            sf.points.get(name).map(|p| {
+                let x = cx + p[0] * scale;
+                let y = cy - p[1] * scale;
+                let z = if p.len() >= 3 { p[2] * scale } else { 0.0 };
+                (x, y, z)
+            }).unwrap_or((cx, cy, 0.0))
         };
-        let j = |name: &str| { let (x, y) = pt(name); crate::pose::Joint::new(x, y) };
+        
+        let j = |name: &str| { 
+            let (x, y, z) = pt(name); 
+            crate::pose::Joint::new_3d(x, y, z) 
+        };
+        
         let blend = |a: &str, b: &str, wa: f32, wb: f32| {
-            let (ax, ay) = pt(a); let (bx, by) = pt(b);
-            crate::pose::Joint::new(ax * wa + bx * wb, ay * wa + by * wb)
+            let (ax, ay, az) = pt(a); 
+            let (bx, by, bz) = pt(b);
+            crate::pose::Joint::new_3d(ax * wa + bx * wb, ay * wa + by * wb, az * wa + bz * wb)
         };
-        let ankle = |foot: &str| { let (x, y) = pt(foot); crate::pose::Joint::new(x, y - 10.0) };
+        
+        let ankle = |foot: &str| { 
+            let (x, y, z) = pt(foot); 
+            crate::pose::Joint::new_3d(x, y - 10.0, z) 
+        };
 
         Some(crate::pose::Pose {
             head:           j("head"),
