@@ -4,8 +4,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, hash_map::DefaultHasher};
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use crate::{pose::Pose, prompt::PromptGenerator, ui_canvas::{draw_pose_canvas, CanvasState},
+use crate::{pose::Pose, prompt::PromptGenerator,
+    ui_canvas::{draw_pose_canvas, CanvasState, normalize_pose},
+    canvas3d::{draw_3d_canvas, Camera3D},
     json_loader::{OptionsLibrary, StylesLibrary, SettingsLibrary, GenericLibrary}};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ViewMode { View2D, View3D }
 
 fn get_app_dir() -> PathBuf {
     let base = if cfg!(target_os = "windows") {
@@ -92,6 +97,7 @@ pub struct PromptPuppetApp {
     pub preset_metadata: HashMap<String, PresetMetadata>,
     pub default_pose: Pose,
     pub canvas_state: CanvasState,
+    pub dragging_joint_3d: Option<String>,
     pub search: HashMap<String, String>,
     pub popup_open: HashMap<String, bool>,
     pub generated_prompt: String,
@@ -103,6 +109,8 @@ pub struct PromptPuppetApp {
     pub save_dialog: Option<String>,
     pub load_dialog: bool,
     pub saves: Vec<SavedState>,
+    pub view_mode: ViewMode,
+    pub camera_3d: Camera3D,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -149,7 +157,8 @@ fn load_preset_library(key: &str, path: &str, items: &mut HashMap<String, Vec<Pr
                        selections: &mut HashMap<String, SelectionState>) {
     let lib: GenericLibrary = match load_or_warn(path) { Some(l) => l, None => return };
     let mut preset_list: Vec<PresetItem> = lib.extract_items().into_iter().map(|gi| {
-        let pose_data = gi.to_pose(cx, cy, 40.0);
+        let mut pose_data = gi.to_pose(cx, cy, 40.0);
+        if let Some(ref mut p) = pose_data { normalize_pose(p); }
         PresetItem {
             id: gi.id.clone(), name: if gi.name.is_empty() { gi.id.clone() } else { gi.name },
             description: gi.description, tags: gi.tags, pose_data,
@@ -219,7 +228,7 @@ impl Default for PromptPuppetApp {
         let mut preset_items    = HashMap::new();
         let mut preset_metadata = HashMap::new();
         let mut selections      = HashMap::new();
-        const CX: f32 = 400.0; const CY: f32 = 350.0;
+        const CX: f32 = 400.0; const CY: f32 = 539.0;  // cy at foot level for JSON poses (y=0 at feet)
         for panel in &ui_config.panels {
             let key = panel.data_source.trim_end_matches(".json");
             if panel.panel_type == "preset_selector" {
@@ -235,21 +244,24 @@ impl Default for PromptPuppetApp {
         let dark_mode = std::fs::read_to_string(theme_file()).ok()
             .and_then(|s| serde_json::from_str::<ThemePref>(&s).ok())
             .map(|t| t.dark_mode).unwrap_or(true);
-        let default_pose = selections.iter()
+        let mut default_pose = selections.iter()
             .find_map(|(key, sel)| {
                 let id = sel.selected.first()?;
                 preset_items.get(key)?.iter().find(|i| &i.id == id)?.pose_data.clone()
             })
             .unwrap_or_else(|| Pose::new_anatomical(CX, CY));
+        normalize_pose(&mut default_pose);
         let state = AppState { options, settings, pose: default_pose.clone(),
             video_mode: false, selections, custom_data: HashMap::new() };
         Self {
             state, libraries, settings_meta, preset_items, preset_metadata,
             default_pose, canvas_state: CanvasState::default(),
+            dragging_joint_3d: None,
             search: HashMap::new(), popup_open: HashMap::new(),
             generated_prompt: String::new(), status_message: String::new(),
             status_timer: 0.0, ui_config, state_hash: 0, dark_mode,
             save_dialog: None, load_dialog: false, saves: load_saves(),
+            view_mode: ViewMode::View2D, camera_3d: Camera3D::default(),
         }
     }
 }
@@ -263,7 +275,7 @@ impl PromptPuppetApp {
     }
     pub fn reset_pose_to_default(&mut self) {
         self.state.pose = self.default_pose.clone();
-        self.set_status("✅ Reset to anatomical", 2.0);
+        self.set_status("✅ Reset to default pose", 2.0);
     }
     pub fn set_status(&mut self, msg: &str, duration: f32) {
         self.status_message = msg.to_string();
@@ -282,6 +294,7 @@ impl PromptPuppetApp {
         if let Some(saved) = self.saves.get(idx) {
             let name = saved.name.clone();
             self.state = saved.state.clone();
+            normalize_pose(&mut self.state.pose);
             self.update_prompt();
             self.set_status(&format!("✅ Loaded \"{name}\""), 3.0);
         }
@@ -526,6 +539,21 @@ impl eframe::App for PromptPuppetApp {
                 if ui.checkbox(&mut self.state.video_mode, "🎬 Video Mode").changed() {
                     self.clear_invalid_multiselections();
                 }
+                ui.add_space(12.0);
+                // 2D / 3D view toggle
+                ui.group(|ui| {
+                    ui.spacing_mut().item_spacing.x = 4.0;
+                    let btn2d = ui.add(egui::Button::new("2D")
+                        .selected(self.view_mode == ViewMode::View2D));
+                    let btn3d = ui.add(egui::Button::new("3D")
+                        .selected(self.view_mode == ViewMode::View3D));
+                    if btn2d.clicked() && self.view_mode != ViewMode::View2D {
+                        self.view_mode = ViewMode::View2D;
+                    }
+                    if btn3d.clicked() && self.view_mode != ViewMode::View3D {
+                        self.view_mode = ViewMode::View3D;
+                    }
+                });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.add_space(8.0);
                     if ui.button(if self.dark_mode { "☀ Light" } else { "🌙 Dark" }).clicked() {
@@ -547,13 +575,11 @@ impl eframe::App for PromptPuppetApp {
             });
         });
 
-        CentralPanel::default().show(ctx, |ui| {
-            let sz = ui.available_size();
-            draw_pose_canvas(ui, &mut self.state.pose, &mut self.canvas_state,
-                sz, &self.status_message, self.status_timer);
-        });
-
-        TopBottomPanel::bottom("prompt_output").min_height(150.0).show(ctx, |ui| {
+        // Show bottom panel first (egui requirement for proper layout)
+        TopBottomPanel::bottom("prompt_output")
+            .min_height(200.0)
+            .max_height(200.0)
+            .show(ctx, |ui| {
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 ui.add_space(8.0);
@@ -571,12 +597,28 @@ impl eframe::App for PromptPuppetApp {
             ui.add_space(4.0);
             ui.separator();
             ui.add_space(2.0);
-            ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
+            ScrollArea::vertical().show(ui, |ui| {
                 ui.add(egui::TextEdit::multiline(&mut self.generated_prompt.as_str())
                     .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace));
+                    .font(egui::TextStyle::Monospace)
+                    .interactive(false));
             });
-            ui.add_space(2.0);
+            ui.add_space(4.0);
+        });
+
+        CentralPanel::default().show(ctx, |ui| {
+            // ui.available_size() now correctly excludes the bottom panel
+            let sz = ui.available_size();
+            
+            match self.view_mode {
+                ViewMode::View2D => {
+                    draw_pose_canvas(ui, &mut self.state.pose, &mut self.canvas_state,
+                        sz, &self.status_message, self.status_timer);
+                }
+                ViewMode::View3D => {
+                    draw_3d_canvas(ui, &mut self.state.pose, &mut self.camera_3d, sz, &mut self.dragging_joint_3d);
+                }
+            }
         });
 
         handle_window_resize(ctx);

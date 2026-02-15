@@ -103,8 +103,9 @@ impl GenericLibrary {
                                     }
                                 }
                             }
-                            // Fallback: check all arrays in category object
-                            for (_, arr) in cat_obj {
+                            // Fallback: check all OTHER arrays in category object (skip already processed)
+                            for (key, arr) in cat_obj {
+                                if key == "poses" || key == "expressions" || key == "items" { continue; }
                                 if let Some(arr) = arr.as_array() {
                                     for v in arr {
                                         if let Ok(item) = serde_json::from_value(v.clone()) { items.push(item); }
@@ -159,31 +160,31 @@ impl GenericItem {
             crate::pose::Joint::new_3d(x, y, z) 
         };
         
-        let blend = |a: &str, b: &str, wa: f32, wb: f32| {
-            let (ax, ay, az) = pt(a); 
-            let (bx, by, bz) = pt(b);
-            crate::pose::Joint::new_3d(ax * wa + bx * wb, ay * wa + by * wb, az * wa + bz * wb)
+        // Generate wrist from elbow (extend downward by FOREARM length)
+        let wrist = |elbow_name: &str| {
+            let (ex, ey, ez) = pt(elbow_name);
+            crate::pose::Joint::new_3d(ex, ey + 59.4, ez) // FOREARM = 89.4 * 2/3
         };
         
-        let ankle = |foot: &str| { 
-            let (x, y, z) = pt(foot); 
-            crate::pose::Joint::new_3d(x, y - 10.0, z) 
+        // Generate ankle from knee (extend downward by SHIN length)
+        let ankle = |knee_name: &str| {
+            let (kx, ky, kz) = pt(knee_name);
+            crate::pose::Joint::new_3d(kx, ky + 56.0, kz) // SHIN = 80.0 * 2/3
         };
 
         Some(crate::pose::Pose {
             head:           j("head"),
             left_shoulder:  j("left_shoulder"),  right_shoulder: j("right_shoulder"),
             left_elbow:     j("left_elbow"),      right_elbow:    j("right_elbow"),
-            left_wrist:     blend("left_hand",  "left_elbow",  0.7, 0.3),
-            right_wrist:    blend("right_hand", "right_elbow", 0.7, 0.3),
-            left_hand:      j("left_hand"),       right_hand:     j("right_hand"),
+            left_wrist:     wrist("left_elbow"),
+            right_wrist:    wrist("right_elbow"),
             left_fingers:   crate::pose::FingerSet::default(),
             right_fingers:  crate::pose::FingerSet::default(),
             hips:           j("pelvis"),
             torso_lean: 0.0, torso_sway: 0.0,
             left_knee:      j("left_knee"),       right_knee:     j("right_knee"),
-            left_ankle:     ankle("left_foot"),   right_ankle:    ankle("right_foot"),
-            left_foot:      j("left_foot"),        right_foot:     j("right_foot"),
+            left_ankle:     ankle("left_knee"),
+            right_ankle:    ankle("right_knee"),
             head_tilt: 0.0, head_nod: 0.0, head_yaw: 0.0,
         })
     }

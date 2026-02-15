@@ -2,6 +2,7 @@
 use egui::{Ui, CollapsingHeader, ComboBox, Grid, Slider, ScrollArea};
 use crate::app::PromptPuppetApp;
 use crate::json_loader::{OptionCategory, UiConfig, PanelConfig};
+use crate::ui_canvas::normalize_pose;
 
 pub fn render_ui_from_config(app: &mut PromptPuppetApp, ui: &mut Ui, config: &UiConfig) -> bool {
     config.panels.clone().iter().fold(false, |ch, panel| {
@@ -197,8 +198,16 @@ fn render_preset_selector(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> 
                     .hint_text(if allow_multi { "Search…" } else { &selected_name })
                     .desired_width(ui.available_width() - 60.0)
             );
-            if sr.changed() && !search.is_empty() && !popup_open { popup_open = true; }
-            if ui.button("✖").clicked() { search.clear(); }
+            // Open popup when search changes and has content (but not if already open)
+            if sr.changed() && !search.is_empty() && !popup_open { 
+                popup_open = true;
+                *app.popup_open.get_mut(key).unwrap() = true;
+            }
+            if ui.button("✖").clicked() { 
+                search.clear();
+                popup_open = false;
+                *app.popup_open.get_mut(key).unwrap() = false;
+            }
             btn
         }).inner
     } else {
@@ -206,7 +215,10 @@ fn render_preset_selector(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> 
     };
 
     let just_opened = button_resp.clicked() && !popup_open;
-    if button_resp.clicked() { popup_open = !popup_open; }
+    if button_resp.clicked() { 
+        popup_open = !popup_open;
+        *app.popup_open.get_mut(key).unwrap() = popup_open;
+    }
 
     if allow_multi && !current_selected.is_empty() {
         ui.horizontal_wrapped(|ui| {
@@ -364,7 +376,8 @@ fn handle_selection(app: &mut PromptPuppetApp, key: &str, id: &str,
 }
 
 fn update_state_from_selection(app: &mut PromptPuppetApp, id: &str, items: &[crate::app::PresetItem]) {
-    if let Some(pose) = items.iter().find(|i| i.id == id).and_then(|i| i.pose_data.clone()) {
+    if let Some(mut pose) = items.iter().find(|i| i.id == id).and_then(|i| i.pose_data.clone()) {
+        normalize_pose(&mut pose);
         app.state.pose = pose;
     }
 }
