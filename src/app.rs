@@ -3,11 +3,26 @@ use egui::{Context, CentralPanel, SidePanel, TopBottomPanel, ScrollArea, RichTex
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, hash_map::DefaultHasher};
 use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
 use crate::{pose::Pose, prompt::PromptGenerator, ui_canvas::{draw_pose_canvas, CanvasState},
     json_loader::{OptionsLibrary, StylesLibrary, SettingsLibrary, GenericLibrary}};
 
-const SAVES_FILE: &str = "promptpuppet_saves.json";
-const THEME_FILE: &str = "promptpuppet_theme.json";
+fn get_app_dir() -> PathBuf {
+    let base = if cfg!(target_os = "windows") {
+        std::env::var("APPDATA").ok()
+    } else if cfg!(target_os = "macos") {
+        std::env::var("HOME").ok().map(|h| format!("{}/Library/Application Support", h))
+    } else {
+        std::env::var("HOME").ok().map(|h| format!("{}/.config", h))
+    };
+    let mut path = PathBuf::from(base.unwrap_or_else(|| ".".to_string()));
+    path.push("PromptPuppet");
+    let _ = std::fs::create_dir_all(&path);
+    path
+}
+
+fn saves_file() -> PathBuf { get_app_dir().join("promptpuppet_saves.json") }
+fn theme_file() -> PathBuf { get_app_dir().join("promptpuppet_theme.json") }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct OptionsData {
@@ -98,13 +113,13 @@ fn load_or_warn<T: for<'de> serde::Deserialize<'de>>(name: &str) -> Option<T> {
 }
 
 fn load_saves() -> Vec<SavedState> {
-    std::fs::read_to_string(SAVES_FILE).ok()
+    std::fs::read_to_string(saves_file()).ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default()
 }
 
 fn write_saves(saves: &[SavedState]) {
-    if let Ok(json) = serde_json::to_string_pretty(saves) { let _ = std::fs::write(SAVES_FILE, json); }
+    if let Ok(json) = serde_json::to_string_pretty(saves) { let _ = std::fs::write(saves_file(), json); }
 }
 
 fn timestamp() -> String {
@@ -217,7 +232,7 @@ impl Default for PromptPuppetApp {
                 }
             }
         }
-        let dark_mode = std::fs::read_to_string(THEME_FILE).ok()
+        let dark_mode = std::fs::read_to_string(theme_file()).ok()
             .and_then(|s| serde_json::from_str::<ThemePref>(&s).ok())
             .map(|t| t.dark_mode).unwrap_or(true);
         let default_pose = selections.iter()
@@ -516,7 +531,7 @@ impl eframe::App for PromptPuppetApp {
                     if ui.button(if self.dark_mode { "☀ Light" } else { "🌙 Dark" }).clicked() {
                         self.dark_mode = !self.dark_mode;
                         ctx.set_theme(if self.dark_mode { egui::Theme::Dark } else { egui::Theme::Light });
-                        let _ = std::fs::write(THEME_FILE,
+                        let _ = std::fs::write(theme_file(),
                             serde_json::json!({"dark_mode": self.dark_mode}).to_string());
                     }
                 });

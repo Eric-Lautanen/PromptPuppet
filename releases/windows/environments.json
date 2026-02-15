@@ -1,0 +1,998 @@
+{
+  "has_search": true,
+  "default": "empty_3d_grid",  
+  "environments": [
+    {
+      "id": "empty_3d_grid",
+      "name": "Empty 3D Grid",
+      "description": "Infinite void with subtle grid floor, perfect for isolated character focus",
+      "prompt": "Empty 3D space with a flat, infinite grid floor stretching to horizon—thin light-gray lines on dark-gray surface, no walls, no ceiling. No objects except the character.",
+      "tags": ["minimalist", "void", "studio", "isolation"],
+      "category": "Abstract"
+    },
+    {
+      "id": "blank_room",
+      "name": "Blank Room",
+      "description": "Clean white room with soft lighting, minimal studio setup",
+      "prompt": "Simple white room with smooth walls and floor, soft diffused lighting from overhead, no furniture or decorations, clean modern aesthetic, subtle shadows, neutral temperature lighting.",
+      "tags": ["clean", "minimal", "studio", "white"],
+      "category": "Studio"
+    },
+    {
+      "id": "minimalist_studio",
+      "name": "Minimalist Studio",
+      "description": "Professional studio with controlled lighting and neutral backdrop",
+      "prompt": "Professional photography studio with gray seamless backdrop, three-point lighting setup, concrete floor, industrial ceiling with visible ducts, softbox lights visible in background, modern minimalist aesthetic.",
+      "tags": ["professional", "studio", "photography", "industrial"],
+      "category": "Studio"
+    },
+    {
+      "id": "green_screen",
+      "name": "Green Screen Studio",
+      "description": "Professional chroma key studio for compositing",
+      "prompt": "Bright green screen studio with even lighting, seamless green backdrop, professional lighting grid overhead, clean floor, perfect for chromakey compositing, studio monitors visible, broadcast quality setup.",
+      "tags": ["greenscreen", "studio", "broadcast", "professional"],
+      "category": "Studio"
+    },
+    {
+      "id": "bedroom",
+      "name": "Bedroom",
+      "description": "Cozy bedroom with bed, natural light from window",
+      "prompt": "Contemporary bedroom with unmade bed, white linens, wooden nightstand, large window with sheer curtains letting in soft natural light, hardwood floors, minimalist decor, warm afternoon glow, intimate atmosphere.",
+      "tags": ["cozy", "intimate", "bedroom", "natural light"],
+      "category": "Interior"
+    },
+    {
+      "id": "modern_kitchen",
+      "name": "Modern Kitchen",
+      "description": "Sleek contemporary kitchen with island and appliances",
+      "prompt": "Modern kitchen with white marble countertops, stainless steel appliances, pendant lights over island, open shelving, large windows, bright natural lighting, clean contemporary design, functional cooking space.",
+      "tags": ["kitchen", "modern", "cooking", "bright"],
+      "category": "Interior"
+    },
+    {
+      "id": "living_room",
+      "name": "Living Room",
+      "description": "Comfortable living space with seating and ambient lighting",
+      "prompt": "Contemporary living room with comfortable sofa, coffee table, area rug, large windows, indoor plants, warm table lamps, bookshelf, cozy family atmosphere, neutral color palette, inviting space.",
+      "tags": ["living room", "cozy", "family", "comfortable"],
+      "category": "Interior"
+    },
+    {
+      "id": "bathroom",
+      "name": "Bathroom",
+      "description": "Modern bathroom with natural light and clean fixtures",
+      "prompt": "Bright modern bathroom with large mirror, white subway tiles, floating vanity, rainfall shower visible, natural light from frosted window, chrome fixtures, clean spa-like atmosphere, minimalist design.",
+      "tags": ["bathroom", "clean", "spa", "modern"],
+      "category": "Interior"
+    },
+    {
+      "id": "home_office",
+      "name": "Home Office",
+      "description": "Productive workspace with desk and organized shelving",
+      "prompt": "Well-organized home office with standing desk, ergonomic chair, computer monitors, organized shelving with books and plants, natural light from window, motivating workspace, clean professional setup.",
+      "tags": ["office", "workspace", "productive", "organized"],
+      "category": "Interior"
+    },
+    {
+      "id": "desk_by_window",
+      "name": "Desk by Window",
+      "description": "Work desk positioned near bright window with city or nature view",
+      "prompt": "Modern desk setup positioned beside floor-to-ceiling window, laptop and notebook on desk, task lamp, ergonomic chair, sunlight streaming through window, blurred cityscape or trees visible outside, warm natural lighting, productive workspace vibe.",
+      "tags": ["workspace", "window", "natural light", "productive"],
+      "category": "Interior"
+    },
+    {
+      "id": "walk_in_closet",
+      "name": "Walk-in Closet",
+      "description": "Organized wardrobe space with clothing and accessories",
+      "prompt": "Spacious walk-in closet with organized clothing racks, shoe shelving, full-length mirror, soft LED lighting, neutral tones, luxury boutique feel, velvet hangers, jewelry display, organized fashion space.",
+      "tags": ["closet", "fashion", "organized", "luxury"],
+      "category": "Interior"
+    },
+    {
+      "id": "basement_rec_room",
+      "name": "Basement Rec Room",
+      "description": "Entertainment space with casual seating and game area",
+      "prompt": "Finished basement with sectional sofa, large TV, gaming setup, pool table in background, soft recessed lighting, carpeted floor, casual entertainment vibe, comfortable hangout space.",
+      "tags": ["basement", "entertainment", "casual", "gaming"],
+      "category": "Interior"
+    },
+    {
+      "id": "nursery",
+      "name": "Nursery",
+      "description": "Soft, playful baby room with crib and toys",
+      "prompt": "Cozy nursery with pastel walls, wooden crib, rocking chair, stuffed animals, mobile hanging above, soft natural light from window, gentle mobile sounds, warm nurturing atmosphere.",
+      "tags": ["nursery", "baby", "playful", "cozy"],
+      "category": "Interior"
+    },
+    {
+      "id": "dining_room",
+      "name": "Dining Room",
+      "description": "Elegant space for meals with table and chairs",
+      "prompt": "Formal dining room with long wooden table, upholstered chairs, chandelier overhead, sideboard with china, large window drapes, candlelit ambiance, sophisticated gathering space.",
+      "tags": ["dining", "elegant", "formal", "gathering"],
+      "category": "Interior"
+    },
+    {
+      "id": "attic_storage",
+      "name": "Attic Storage",
+      "description": "Cluttered attic with boxes and vintage items",
+      "prompt": "Dimly lit attic with sloped ceiling, wooden beams, stacked boxes, old trunk, cobwebs, single bulb light, nostalgic forgotten treasures atmosphere.",
+      "tags": ["attic", "storage", "vintage", "cluttered"],
+      "category": "Interior"
+    },
+    {
+      "id": "laundry_room",
+      "name": "Laundry Room",
+      "description": "Functional utility space with washer and dryer",
+      "prompt": "Compact laundry room with front-load washer dryer, folding table, ironing board, shelves with detergents, tiled floor, bright task lighting, practical household chore area.",
+      "tags": ["laundry", "utility", "functional", "household"],
+      "category": "Interior"
+    },
+    {
+      "id": "coffee_shop",
+      "name": "Coffee Shop",
+      "description": "Warm cafe interior with ambient lighting and background activity",
+      "prompt": "Cozy coffee shop interior with wooden tables and chairs, exposed brick wall, pendant lights hanging from ceiling, blurred customers in background, coffee bar visible, warm Edison bulb lighting, plants on windowsill, comfortable casual atmosphere.",
+      "tags": ["cafe", "social", "warm", "urban"],
+      "category": "Public Space"
+    },
+    {
+      "id": "library",
+      "name": "Library",
+      "description": "Quiet library with bookshelves and reading areas",
+      "prompt": "Traditional library interior with tall wooden bookshelves filled with books, reading desk with brass lamp, leather chair, large windows with natural light, quiet studious atmosphere, warm amber lighting, scholarly aesthetic.",
+      "tags": ["quiet", "books", "study", "intellectual"],
+      "category": "Public Space"
+    },
+    {
+      "id": "art_gallery",
+      "name": "Art Gallery",
+      "description": "Modern art gallery with white walls and spotlight lighting",
+      "prompt": "Contemporary art gallery with pristine white walls, polished concrete floors, track lighting illuminating artwork, high ceilings, minimalist aesthetic, empty spacious rooms, professional gallery atmosphere, soft echo acoustics.",
+      "tags": ["gallery", "art", "minimal", "professional"],
+      "category": "Public Space"
+    },
+    {
+      "id": "museum_hall",
+      "name": "Museum Hall",
+      "description": "Grand museum corridor with exhibits and architectural details",
+      "prompt": "Impressive museum hall with high vaulted ceilings, marble floors, classical columns, glass display cases with artifacts, natural light from skylights, grand architectural space, cultural institution atmosphere.",
+      "tags": ["museum", "cultural", "grand", "educational"],
+      "category": "Public Space"
+    },
+    {
+      "id": "restaurant",
+      "name": "Restaurant",
+      "description": "Upscale dining establishment with ambient atmosphere",
+      "prompt": "Elegant restaurant interior with white tablecloths, ambient candlelight, wine glasses, plants and decor, blurred diners in background, warm intimate lighting, upscale dining atmosphere, wooden floors.",
+      "tags": ["dining", "restaurant", "upscale", "intimate"],
+      "category": "Public Space"
+    },
+    {
+      "id": "bar_lounge",
+      "name": "Bar Lounge",
+      "description": "Sophisticated bar with dim lighting and bottle displays",
+      "prompt": "Modern cocktail bar with backlit bottle display, polished wood bar counter, bar stools, dim moody lighting, Edison bulbs, brick accent wall, sophisticated nightlife atmosphere, craft cocktail vibe.",
+      "tags": ["bar", "nightlife", "sophisticated", "moody"],
+      "category": "Public Space"
+    },
+    {
+      "id": "hotel_lobby",
+      "name": "Hotel Lobby",
+      "description": "Upscale hotel entrance with reception and seating",
+      "prompt": "Luxurious hotel lobby with marble floors, chandelier lighting, reception desk, leather seating areas, large floral arrangements, floor-to-ceiling windows, elegant hospitality atmosphere, high-end design.",
+      "tags": ["hotel", "luxury", "elegant", "hospitality"],
+      "category": "Public Space"
+    },
+    {
+      "id": "airport_terminal",
+      "name": "Airport Terminal",
+      "description": "Modern airport gate area with travelers",
+      "prompt": "Contemporary airport terminal with large windows showing planes, rows of seating, departure boards, blurred travelers with luggage, bright overhead lighting, clean modern architecture, travel atmosphere.",
+      "tags": ["airport", "travel", "modern", "transit"],
+      "category": "Public Space"
+    },
+    {
+      "id": "train_station",
+      "name": "Train Station",
+      "description": "Classic railway station with platforms and architectural details",
+      "prompt": "Grand train station with vaulted glass ceiling, iron architecture, ticket booths, waiting benches, departure boards, diffused natural light, vintage meets modern aesthetic, transit hub atmosphere.",
+      "tags": ["train", "station", "transit", "architectural"],
+      "category": "Public Space"
+    },
+    {
+      "id": "hospital_hallway",
+      "name": "Hospital Hallway",
+      "description": "Clean medical facility corridor with clinical lighting",
+      "prompt": "Modern hospital corridor with white walls, linoleum floors, fluorescent lighting, nurses station visible, medical equipment, clean clinical atmosphere, professional healthcare environment.",
+      "tags": ["hospital", "medical", "clinical", "professional"],
+      "category": "Public Space"
+    },
+    {
+      "id": "gym_studio",
+      "name": "Gym Studio",
+      "description": "Fitness studio with mirrors and exercise equipment",
+      "prompt": "Modern fitness studio with large wall mirrors, wooden or rubber flooring, natural light from tall windows, yoga mats or light equipment visible, clean minimal design, motivating atmosphere, professional gym aesthetic.",
+      "tags": ["fitness", "gym", "athletic", "mirrors"],
+      "category": "Public Space"
+    },
+    {
+      "id": "shopping_mall",
+      "name": "Shopping Mall",
+      "description": "Bustling indoor mall with stores and escalators",
+      "prompt": "Multi-level shopping mall with glass atrium ceiling, escalators, storefronts with mannequins, food court in distance, crowds of shoppers, bright commercial lighting, consumer retail atmosphere.",
+      "tags": ["mall", "shopping", "retail", "bustling"],
+      "category": "Public Space"
+    },
+    {
+      "id": "movie_theater",
+      "name": "Movie Theater",
+      "description": "Dim cinema auditorium with seats and screen",
+      "prompt": "Dark movie theater with tiered seating, large projection screen, popcorn scent, dim aisle lights, velvet curtains, immersive cinematic experience, pre-show ambiance.",
+      "tags": ["theater", "cinema", "entertainment", "dark"],
+      "category": "Public Space"
+    },
+    {
+      "id": "stadium",
+      "name": "Sports Stadium",
+      "description": "Vast arena with seating and field",
+      "prompt": "Massive sports stadium with green field, packed bleachers, jumbotron screen, floodlights, cheering crowd blurred, energetic competitive atmosphere, event venue vibe.",
+      "tags": ["stadium", "sports", "crowd", "arena"],
+      "category": "Public Space"
+    },
+    {
+      "id": "corporate_office",
+      "name": "Corporate Office",
+      "description": "Professional office space with desks and cubicles",
+      "prompt": "Modern corporate office with open floor plan, desk workstations, ergonomic chairs, large windows with city views, potted plants, fluorescent and natural lighting mix, professional business atmosphere.",
+      "tags": ["office", "corporate", "business", "professional"],
+      "category": "Professional"
+    },
+    {
+      "id": "conference_room",
+      "name": "Conference Room",
+      "description": "Meeting space with table and presentation equipment",
+      "prompt": "Contemporary conference room with long table, office chairs, large TV screen for presentations, whiteboard, glass walls, natural light from windows, professional meeting atmosphere, corporate setting.",
+      "tags": ["meeting", "corporate", "professional", "business"],
+      "category": "Professional"
+    },
+    {
+      "id": "classroom",
+      "name": "Classroom",
+      "description": "Educational space with desks and whiteboard",
+      "prompt": "Modern classroom with rows of student desks, whiteboard at front, teacher's desk, bulletin boards, large windows, bright fluorescent lighting, educational posters, learning environment.",
+      "tags": ["school", "education", "learning", "classroom"],
+      "category": "Professional"
+    },
+    {
+      "id": "lecture_hall",
+      "name": "Lecture Hall",
+      "description": "Tiered university auditorium with seating",
+      "prompt": "University lecture hall with tiered seating, projection screen, podium at front, overhead lighting, acoustic panels, students visible in background, academic atmosphere, higher education setting.",
+      "tags": ["university", "lecture", "academic", "education"],
+      "category": "Professional"
+    },
+    {
+      "id": "recording_studio",
+      "name": "Recording Studio",
+      "description": "Professional music studio with equipment and soundproofing",
+      "prompt": "Music recording studio with soundproof panels, mixing console, monitors, microphone booth visible through glass, ambient LED lighting, professional audio equipment, creative production space.",
+      "tags": ["music", "studio", "recording", "production"],
+      "category": "Professional"
+    },
+    {
+      "id": "photo_studio",
+      "name": "Photo Studio",
+      "description": "Photography space with backdrops and lighting equipment",
+      "prompt": "Professional photo studio with seamless paper backdrop, strobe lights on stands, reflectors, camera on tripod, concrete floor, industrial ceiling, professional photography setup, creative workspace.",
+      "tags": ["photography", "studio", "professional", "creative"],
+      "category": "Professional"
+    },
+    {
+      "id": "law_firm",
+      "name": "Law Firm Office",
+      "description": "Formal legal workspace with bookshelves and desks",
+      "prompt": "Elegant law firm office with mahogany desks, leather chairs, law bookshelves, scale of justice decor, large windows, polished wood floors, authoritative professional environment.",
+      "tags": ["law", "office", "legal", "formal"],
+      "category": "Professional"
+    },
+    {
+      "id": "hospital_room",
+      "name": "Hospital Room",
+      "description": "Patient recovery room with bed and medical equipment",
+      "prompt": "Clean hospital patient room with adjustable bed, IV stand, heart monitor, window with blinds, sterile white walls, soft clinical lighting, comforting medical care space.",
+      "tags": ["hospital", "patient", "medical", "recovery"],
+      "category": "Professional"
+    },
+    {
+      "id": "retail_store",
+      "name": "Retail Store",
+      "description": "Bustling shop with shelves and checkout",
+      "prompt": "Bright retail clothing store with clothing racks, mannequins, fitting rooms, checkout counter, display windows, upbeat music, consumer shopping atmosphere.",
+      "tags": ["store", "retail", "shopping", "commercial"],
+      "category": "Professional"
+    },
+    {
+      "id": "outdoor_park",
+      "name": "Outdoor Park",
+      "description": "Natural park setting with trees and open space",
+      "prompt": "Public park with lush green grass, mature trees providing dappled shade, walking path visible in background, park bench nearby, blue sky with scattered clouds, natural daylight, peaceful outdoor atmosphere, gentle breeze moving leaves.",
+      "tags": ["nature", "outdoor", "park", "daylight"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "city_street",
+      "name": "City Street",
+      "description": "Urban street scene with buildings and ambient city life",
+      "prompt": "Modern city street with tall buildings on both sides, sidewalk with trees, blurred pedestrians and traffic in background, street lamps, shop windows, urban energy, golden hour lighting, contemporary architecture, bustling city vibe.",
+      "tags": ["urban", "street", "city", "public"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "rooftop_terrace",
+      "name": "Rooftop Terrace",
+      "description": "Urban rooftop with city skyline views",
+      "prompt": "Modern rooftop terrace with wooden decking, metal railing, potted plants, outdoor furniture, city skyline visible in background, sunset or dusk lighting, ambient city lights beginning to glow, elevated perspective, open sky above.",
+      "tags": ["rooftop", "urban", "skyline", "elevated"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "beach_sunset",
+      "name": "Beach at Sunset",
+      "description": "Sandy beach with ocean waves and golden sunset light",
+      "prompt": "Sandy beach at golden hour, gentle waves lapping at shore, wet sand reflecting sunset colors, ocean horizon visible, warm orange and pink sky, seagulls in distance, peaceful coastal atmosphere, salty sea breeze.",
+      "tags": ["beach", "sunset", "ocean", "nature"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "forest_clearing",
+      "name": "Forest Clearing",
+      "description": "Natural forest opening with dappled sunlight",
+      "prompt": "Small clearing in dense forest, tall trees surrounding, dappled sunlight filtering through canopy, soft moss on ground, fallen leaves, quiet natural atmosphere, green filtered light, peaceful woodland setting.",
+      "tags": ["forest", "nature", "trees", "peaceful"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "mountain_vista",
+      "name": "Mountain Vista",
+      "description": "Elevated mountain viewpoint with expansive landscape",
+      "prompt": "Mountain overlook with vast panoramic view, distant peaks visible, clear blue sky, rocky outcrop in foreground, alpine vegetation, crisp mountain air, dramatic natural landscape, sense of elevation and space.",
+      "tags": ["mountain", "vista", "landscape", "nature"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "desert_landscape",
+      "name": "Desert Landscape",
+      "description": "Arid desert environment with sand and rock formations",
+      "prompt": "Vast desert landscape with rolling sand dunes, scattered rock formations, clear blue sky, harsh sunlight casting strong shadows, minimal vegetation, sense of isolation and vastness, warm dry atmosphere.",
+      "tags": ["desert", "arid", "landscape", "isolation"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "lake_dock",
+      "name": "Lake Dock",
+      "description": "Wooden pier extending over calm lake water",
+      "prompt": "Peaceful lake with wooden dock extending into calm water, trees reflected in surface, distant mountains, blue sky with white clouds, gentle ripples, serene natural setting, afternoon light.",
+      "tags": ["lake", "water", "dock", "peaceful"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "waterfall",
+      "name": "Waterfall",
+      "description": "Natural cascade with rocks and mist",
+      "prompt": "Scenic waterfall cascading down rocky cliff, mist rising, pool below, surrounding lush vegetation, smooth water motion, natural light, powerful yet peaceful atmosphere, pristine wilderness.",
+      "tags": ["waterfall", "nature", "water", "scenic"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "garden",
+      "name": "Garden",
+      "description": "Manicured garden with flowers and paths",
+      "prompt": "Beautiful garden with colorful flowers in bloom, stone pathway, trimmed hedges, garden bench, birdbath, butterflies, soft natural daylight, peaceful cultivated nature, well-maintained landscape.",
+      "tags": ["garden", "flowers", "nature", "peaceful"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "cherry_blossom_park",
+      "name": "Cherry Blossom Park",
+      "description": "Japanese-style park with blooming cherry trees",
+      "prompt": "Serene park with cherry blossom trees in full bloom, pink petals gently falling, traditional Japanese stone path, small wooden bridge over stream, soft spring lighting, peaceful zen atmosphere, romantic natural setting.",
+      "tags": ["cherry blossom", "japanese", "spring", "romantic"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "bamboo_forest",
+      "name": "Bamboo Forest",
+      "description": "Dense grove of towering bamboo stalks",
+      "prompt": "Tranquil bamboo forest with tall green stalks reaching skyward, dappled light filtering through, narrow path through grove, peaceful rustling sound atmosphere, zen Japanese aesthetic, natural green filtered light.",
+      "tags": ["bamboo", "forest", "japanese", "zen"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "meadow",
+      "name": "Wildflower Meadow",
+      "description": "Open field of blooming wildflowers",
+      "prompt": "Expansive meadow filled with colorful wildflowers swaying in breeze, distant hills, blue sky, butterflies fluttering, golden sunlight, idyllic pastoral scene, serene countryside escape.",
+      "tags": ["meadow", "wildflowers", "countryside", "serene"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "river_bank",
+      "name": "River Bank",
+      "description": "Gentle river with grassy banks and overhanging trees",
+      "prompt": "Tranquil river bank with flowing clear water, willow trees dipping branches, smooth pebbles, picnic spot, soft current sounds, relaxed riverside leisure atmosphere.",
+      "tags": ["river", "bank", "water", "tranquil"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "volcano",
+      "name": "Volcanic Crater",
+      "description": "Active volcano rim with lava glow",
+      "prompt": "Rugged volcanic crater edge with steaming fissures, distant lava flow glowing red, ash clouds, barren rock landscape, intense geothermal heat, dramatic geological power.",
+      "tags": ["volcano", "lava", "geothermal", "dramatic"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "tundra",
+      "name": "Arctic Tundra",
+      "description": "Frozen plain with permafrost and low vegetation",
+      "prompt": "Vast arctic tundra with snow patches, hardy shrubs, distant icebergs, pale blue sky, howling wind, harsh polar wilderness, extreme cold isolation.",
+      "tags": ["tundra", "arctic", "frozen", "harsh"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "savanna",
+      "name": "African Savanna",
+      "description": "Grassland with acacia trees and wildlife",
+      "prompt": "Golden savanna grasslands with flat-top acacia trees, herd of zebras in distance, hot sun, dry season dust, African wildlife habitat, expansive safari vista.",
+      "tags": ["savanna", "africa", "wildlife", "grassland"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "urban_alley",
+      "name": "Urban Alley",
+      "description": "City back alley with brick walls and fire escapes",
+      "prompt": "Narrow urban alley between brick buildings, fire escapes, dumpsters, graffiti art on walls, puddles on ground, overhead clotheslines, gritty city atmosphere, diffused daylight from above.",
+      "tags": ["urban", "alley", "gritty", "city"],
+      "category": "Urban"
+    },
+    {
+      "id": "neon_alley",
+      "name": "Neon Alley",
+      "description": "Cyberpunk-style urban alley with neon signs",
+      "prompt": "Narrow urban alley at night with glowing neon signs in pink, blue, and purple, wet pavement reflecting colored lights, steam rising from vents, brick walls, futuristic cyberpunk aesthetic, moody atmospheric lighting, urban noir vibe.",
+      "tags": ["cyberpunk", "neon", "night", "urban"],
+      "category": "Urban"
+    },
+    {
+      "id": "subway_platform",
+      "name": "Subway Platform",
+      "description": "Underground metro station with waiting area",
+      "prompt": "Underground subway platform with tiled walls, yellow safety line, blurred commuters, fluorescent lighting, arrival boards, rails visible, urban transit atmosphere, echo acoustics.",
+      "tags": ["subway", "urban", "transit", "underground"],
+      "category": "Urban"
+    },
+    {
+      "id": "parking_garage",
+      "name": "Parking Garage",
+      "description": "Multi-level concrete parking structure",
+      "prompt": "Concrete parking garage with painted floor markings, fluorescent strip lighting, support pillars, parked cars in background, industrial atmosphere, urban infrastructure, echo ambience.",
+      "tags": ["parking", "urban", "concrete", "industrial"],
+      "category": "Urban"
+    },
+    {
+      "id": "marketplace",
+      "name": "Urban Marketplace",
+      "description": "Bustling street market with stalls and vendors",
+      "prompt": "Vibrant urban marketplace with colorful stalls, fresh produce, hanging spices, haggling crowds, awnings overhead, lively commerce atmosphere, multicultural energy.",
+      "tags": ["market", "urban", "bustling", "commerce"],
+      "category": "Urban"
+    },
+    {
+      "id": "city_bridge",
+      "name": "City Bridge",
+      "description": "Iconic urban bridge over river",
+      "prompt": "Steel suspension bridge in cityscape, river below, traffic flowing, pedestrians on walkway, skyline backdrop, engineering marvel, dynamic urban crossing.",
+      "tags": ["bridge", "urban", "river", "iconic"],
+      "category": "Urban"
+    },
+    {
+      "id": "skyscraper_lobby",
+      "name": "Skyscraper Lobby",
+      "description": "Grand entrance to high-rise building",
+      "prompt": "Opulent skyscraper lobby with marble floors, glass elevators, reception desk, abstract art, high ceilings, bustling professionals, modern architectural grandeur.",
+      "tags": ["skyscraper", "lobby", "modern", "grand"],
+      "category": "Urban"
+    },
+    {
+      "id": "warehouse",
+      "name": "Warehouse",
+      "description": "Large industrial storage space with high ceilings",
+      "prompt": "Spacious warehouse interior with high ceiling, industrial lighting, concrete floor, metal shelving units, pallets, loading dock visible, utilitarian industrial aesthetic, echo acoustics, functional storage space.",
+      "tags": ["warehouse", "industrial", "storage", "spacious"],
+      "category": "Industrial"
+    },
+    {
+      "id": "factory_floor",
+      "name": "Factory Floor",
+      "description": "Active manufacturing facility with equipment",
+      "prompt": "Industrial factory floor with machinery, conveyor belts, metal grating walkways, overhead cranes, industrial lighting, concrete floor with painted markings, working production environment, mechanical sounds.",
+      "tags": ["factory", "industrial", "manufacturing", "mechanical"],
+      "category": "Industrial"
+    },
+    {
+      "id": "vintage_garage",
+      "name": "Vintage Garage",
+      "description": "Industrial garage workshop with tools and vintage items",
+      "prompt": "Vintage automotive garage with concrete floor, tool benches, industrial lighting hanging from ceiling, oil stains, vintage posters on walls, metal shelving with parts, gritty authentic workshop atmosphere, warm tungsten lighting.",
+      "tags": ["industrial", "garage", "vintage", "workshop"],
+      "category": "Industrial"
+    },
+    {
+      "id": "construction_site",
+      "name": "Construction Site",
+      "description": "Active building site with equipment and materials",
+      "prompt": "Construction site with exposed framework, scaffolding, stacked materials, orange safety cones, dirt ground, construction equipment in background, work-in-progress atmosphere, industrial safety aesthetic.",
+      "tags": ["construction", "industrial", "building", "worksite"],
+      "category": "Industrial"
+    },
+    {
+      "id": "shipyard",
+      "name": "Shipyard",
+      "description": "Maritime industrial dock with cranes and vessels",
+      "prompt": "Busy shipyard with massive cranes, docked cargo ships, welders sparking, metal scaffolding, ocean horizon, heavy machinery hum, nautical industrial labor.",
+      "tags": ["shipyard", "maritime", "cranes", "industrial"],
+      "category": "Industrial"
+    },
+    {
+      "id": "oil_rig",
+      "name": "Offshore Oil Rig",
+      "description": "Floating platform in ocean with drilling equipment",
+      "prompt": "Offshore oil rig platform with drilling derrick, pipes and valves, worker safety gear, rough sea waves, overcast sky, remote energy extraction environment.",
+      "tags": ["oil_rig", "offshore", "drilling", "ocean"],
+      "category": "Industrial"
+    },
+    {
+      "id": "mine",
+      "name": "Underground Mine",
+      "description": "Dark tunnel with carts and lanterns",
+      "prompt": "Deep underground mine shaft with timber supports, ore carts on rails, headlamp lights, dripping water, earthy smells, hazardous extraction labor.",
+      "tags": ["mine", "underground", "ore", "dark"],
+      "category": "Industrial"
+    },
+    {
+      "id": "cozy_corner",
+      "name": "Cozy Corner",
+      "description": "Intimate corner space with comfortable seating",
+      "prompt": "Small cozy corner with plush armchair or floor cushions, reading lamp, small side table with tea or book, warm throw blanket, potted plant, soft rug, warm ambient lighting, intimate personal space, comfortable nook feeling.",
+      "tags": ["cozy", "intimate", "comfort", "reading"],
+      "category": "Interior"
+    },
+    {
+      "id": "rainy_window",
+      "name": "Rainy Window",
+      "description": "Interior view with rain-streaked window in background",
+      "prompt": "Indoor space with large window in background showing rain droplets on glass, blurred rainy cityscape or nature beyond, soft gray overcast lighting, cozy interior contrast, water trails on window, melancholic peaceful atmosphere.",
+      "tags": ["rain", "window", "cozy", "weather"],
+      "category": "Interior"
+    },
+    {
+      "id": "film_noir_office",
+      "name": "Film Noir Office",
+      "description": "1940s detective office with dramatic venetian blind lighting",
+      "prompt": "Classic detective office with wooden desk, vintage desk lamp, filing cabinets, venetian blinds casting dramatic shadows, black and white aesthetic, film noir lighting, cigarette smoke haze, period-appropriate decor, moody atmosphere.",
+      "tags": ["noir", "vintage", "dramatic", "office"],
+      "category": "Vintage"
+    },
+    {
+      "id": "victorian_parlor",
+      "name": "Victorian Parlor",
+      "description": "Elegant 19th century sitting room with period furniture",
+      "prompt": "Victorian-era parlor with ornate furniture, velvet upholstery, patterned wallpaper, crystal chandelier, Persian rugs, fireplace mantel with candelabras, heavy curtains, antique decorations, period-accurate luxury.",
+      "tags": ["victorian", "vintage", "elegant", "period"],
+      "category": "Vintage"
+    },
+    {
+      "id": "speakeasy",
+      "name": "Speakeasy",
+      "description": "Prohibition-era hidden bar with vintage decor",
+      "prompt": "Secret 1920s speakeasy bar with leather booths, dim Edison bulbs, brick walls, vintage bar with brass fixtures, jazz atmosphere, art deco details, hidden entrance aesthetic, prohibition-era ambience.",
+      "tags": ["speakeasy", "vintage", "1920s", "bar"],
+      "category": "Vintage"
+    },
+    {
+      "id": "retro_diner",
+      "name": "Retro Diner",
+      "description": "1950s American diner with classic styling",
+      "prompt": "Classic 1950s diner with red vinyl booths, checkered floor, chrome accents, jukebox in corner, neon signs, counter with bar stools, vintage Americana aesthetic, nostalgic atmosphere.",
+      "tags": ["diner", "retro", "1950s", "americana"],
+      "category": "Vintage"
+    },
+    {
+      "id": "70s_disco",
+      "name": "70s Disco",
+      "description": "Groovy dance club with mirror ball and lights",
+      "prompt": "1970s disco club with spinning mirror ball, colorful strobe lights, velvet seating, lava lamps, shag carpet, funky music vibe, retro party atmosphere.",
+      "tags": ["disco", "70s", "dance", "groovy"],
+      "category": "Vintage"
+    },
+    {
+      "id": "ancient_ruins",
+      "name": "Ancient Roman Ruins",
+      "description": "Crumbling coliseum with ivy and stone arches",
+      "prompt": "Weathered ancient Roman ruins with ivy-covered columns, cracked marble floors, distant forum, golden hour light, historical archaeological site, timeless antiquity.",
+      "tags": ["ancient", "ruins", "roman", "historical"],
+      "category": "Vintage"
+    },
+    {
+      "id": "spaceship_interior",
+      "name": "Spaceship Interior",
+      "description": "Futuristic spacecraft cabin with controls and displays",
+      "prompt": "Futuristic spaceship interior with illuminated control panels, holographic displays, clean metallic surfaces, ambient blue lighting, windows showing stars, high-tech sci-fi aesthetic, zero-gravity ready design.",
+      "tags": ["scifi", "spaceship", "futuristic", "technology"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "cyberpunk_apartment",
+      "name": "Cyberpunk Apartment",
+      "description": "High-tech urban dwelling with neon accents",
+      "prompt": "Small cyberpunk apartment with floor-to-ceiling windows overlooking neon city, holographic displays, LED strip lighting, minimalist furniture, tech clutter, rain visible outside, dystopian future aesthetic.",
+      "tags": ["cyberpunk", "apartment", "futuristic", "neon"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "laboratory",
+      "name": "Laboratory",
+      "description": "Scientific research facility with equipment",
+      "prompt": "Modern science laboratory with lab benches, microscopes, beakers and equipment, white walls, fluorescent lighting, clean room aesthetic, research facility atmosphere, professional scientific environment.",
+      "tags": ["lab", "science", "research", "sterile"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "alien_planet",
+      "name": "Alien Planet Surface",
+      "description": "Exotic extraterrestrial landscape with strange flora",
+      "prompt": "Barren alien planet with purple skies, bioluminescent plants, rocky terrain, distant moons, hazy atmosphere, otherworldly exploration site, sci-fi frontier.",
+      "tags": ["alien", "planet", "extraterrestrial", "exotic"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "space_station",
+      "name": "Space Station",
+      "description": "Orbital habitat with modules and earth view",
+      "prompt": "International space station module with zero-g handrails, computer consoles, earth visible through porthole, floating tools, high-tech orbital living quarters.",
+      "tags": ["space_station", "orbital", "zero_g", "habitat"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "virtual_reality",
+      "name": "Virtual Reality Grid",
+      "description": "Digital simulation space with code rain",
+      "prompt": "Immersive VR environment with floating data streams, neon wireframe grid, customizable avatars, matrix-like code falling, digital metaverse realm, augmented simulation.",
+      "tags": ["vr", "virtual", "digital", "simulation"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "medieval_castle",
+      "name": "Medieval Castle Hall",
+      "description": "Stone castle interior with torches and banners",
+      "prompt": "Medieval castle great hall with stone walls, wooden beam ceiling, long banquet table, throne at head, wall torches casting flickering light, family banners, suits of armor, historical period atmosphere.",
+      "tags": ["medieval", "castle", "historical", "stone"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "fantasy_tavern",
+      "name": "Fantasy Tavern",
+      "description": "Medieval-style inn with wooden interior and fireplace",
+      "prompt": "Cozy fantasy tavern with rough wooden tables and benches, large stone fireplace, barrel bar, oil lamps, exposed beam ceiling, medieval fantasy aesthetic, warm firelight, adventurer gathering place.",
+      "tags": ["fantasy", "tavern", "medieval", "cozy"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "enchanted_forest",
+      "name": "Enchanted Forest",
+      "description": "Magical woodland with glowing elements",
+      "prompt": "Mystical forest with ancient gnarled trees, glowing mushrooms, floating lights, magical mist, twisted roots, ethereal atmosphere, fantasy lighting, otherworldly natural setting, magical realism.",
+      "tags": ["fantasy", "forest", "magical", "enchanted"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "crystal_cave",
+      "name": "Crystal Cave",
+      "description": "Underground cavern with glowing crystals",
+      "prompt": "Underground cave with massive luminescent crystals, pools of still water reflecting light, stalactites, ethereal blue and purple glow, mysterious atmosphere, fantasy geology, magical underground.",
+      "tags": ["fantasy", "cave", "crystals", "underground"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "dragon_lair",
+      "name": "Dragon Lair",
+      "description": "Fiery cavern hoard with treasure and bones",
+      "prompt": "Dark dragon's lair cave with piles of gold coins and jewels, scattered bones, flickering torchlight, massive claw marks, smoky air, mythical beast domain, perilous treasure vault.",
+      "tags": ["dragon", "lair", "treasure", "fiery"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "wizard_tower",
+      "name": "Wizard's Tower",
+      "description": "Spiral stone tower with arcane library",
+      "prompt": "Tall wizard's tower interior with spiral staircase, shelves of spellbooks, bubbling potions, crystal orbs, starry ceiling illusion, mystical arcane study, enchanted solitude.",
+      "tags": ["wizard", "tower", "magic", "arcane"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "elven_village",
+      "name": "Elven Village",
+      "description": "Treehouse settlement in ancient woods",
+      "prompt": "Graceful elven village with tree-integrated homes, rope bridges, glowing runes, leaf-thatched roofs, moonlit glade, harmonious nature-elf coexistence, ethereal woodland community.",
+      "tags": ["elven", "village", "treehouse", "ethereal"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "haunted_mansion",
+      "name": "Haunted Mansion",
+      "description": "Abandoned Victorian house with eerie atmosphere",
+      "prompt": "Decrepit Victorian mansion interior with peeling wallpaper, dusty furniture covered in sheets, cobwebs, broken chandelier, moonlight through broken windows, eerie shadows, gothic horror atmosphere.",
+      "tags": ["horror", "mansion", "abandoned", "gothic"],
+      "category": "Horror"
+    },
+    {
+      "id": "foggy_graveyard",
+      "name": "Foggy Graveyard",
+      "description": "Cemetery at night with mist and moonlight",
+      "prompt": "Old graveyard at night with weathered headstones, gnarled dead trees, thick fog rolling across ground, full moon partially obscured by clouds, eerie atmosphere, gothic horror setting.",
+      "tags": ["horror", "graveyard", "fog", "night"],
+      "category": "Horror"
+    },
+    {
+      "id": "abandoned_hospital",
+      "name": "Abandoned Hospital",
+      "description": "Decaying medical facility with unsettling atmosphere",
+      "prompt": "Abandoned hospital corridor with flickering fluorescent lights, overturned gurneys, peeling paint, scattered medical equipment, broken windows, unsettling decay, horror atmosphere.",
+      "tags": ["horror", "abandoned", "hospital", "decay"],
+      "category": "Horror"
+    },
+    {
+      "id": "asylum",
+      "name": "Abandoned Asylum",
+      "description": "Dilapidated mental institution with padded cells",
+      "prompt": "Creepy abandoned asylum with rusted bars, graffiti-covered walls, straitjackets on floor, echoing screams implied, dim emergency lights, psychological terror ward.",
+      "tags": ["asylum", "abandoned", "creepy", "psychological"],
+      "category": "Horror"
+    },
+    {
+      "id": "haunted_forest",
+      "name": "Haunted Forest",
+      "description": "Twisted woods with ghostly apparitions",
+      "prompt": "Sinister haunted forest with gnarled black trees, whispering winds, faint ghostly figures, blood moon overhead, crunching leaves, supernatural dread lurking.",
+      "tags": ["haunted", "forest", "ghostly", "sinister"],
+      "category": "Horror"
+    },
+    {
+      "id": "zombie_street",
+      "name": "Zombie Apocalypse Street",
+      "description": "Ruined urban road with undead hordes",
+      "prompt": "Post-apocalyptic city street with overturned cars, broken windows, shambling zombies in distance, overcast sky, survival barricades, tense undead outbreak chaos.",
+      "tags": ["zombie", "apocalypse", "ruined", "undead"],
+      "category": "Horror"
+    },
+    {
+      "id": "tropical_beach",
+      "name": "Tropical Beach",
+      "description": "Paradise beach with palm trees and turquoise water",
+      "prompt": "Pristine tropical beach with white sand, swaying palm trees, crystal clear turquoise water, blue sky with white clouds, gentle waves, paradise atmosphere, vacation destination feel.",
+      "tags": ["tropical", "beach", "paradise", "vacation"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "canyon",
+      "name": "Canyon",
+      "description": "Dramatic rock formation with layered geology",
+      "prompt": "Vast canyon with layered red rock walls, dramatic shadows, clear desert sky, sense of geological time, powerful natural landscape, dry arid atmosphere, southwestern United States aesthetic.",
+      "tags": ["canyon", "desert", "geological", "dramatic"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "northern_lights",
+      "name": "Northern Lights",
+      "description": "Arctic landscape with aurora borealis overhead",
+      "prompt": "Dark arctic landscape with dancing aurora borealis in green and purple across night sky, snowy ground, silhouetted trees or mountains, stars visible, magical natural phenomenon, cold ethereal atmosphere.",
+      "tags": ["aurora", "arctic", "night", "magical"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "vineyard",
+      "name": "Vineyard",
+      "description": "Rolling hills with grape vines and winery",
+      "prompt": "Picturesque vineyard with rows of grape vines on rolling hills, rustic winery building in distance, golden afternoon light, countryside atmosphere, wine country aesthetic, peaceful agricultural setting.",
+      "tags": ["vineyard", "countryside", "agricultural", "peaceful"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "snowy_cabin",
+      "name": "Snowy Cabin",
+      "description": "Rustic cabin in winter forest setting",
+      "prompt": "Cozy log cabin surrounded by snow-covered pine trees, smoke rising from chimney, warm light glowing from windows, footprints in snow, winter wonderland atmosphere, peaceful mountain retreat.",
+      "tags": ["cabin", "snow", "winter", "cozy"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "underwater_reef",
+      "name": "Coral Reef",
+      "description": "Vibrant underwater ecosystem with fish and corals",
+      "prompt": "Colorful coral reef with schools of tropical fish, swaying anemones, sunlight rays piercing water surface, bubbles rising, aquatic marine paradise, submerged wonder.",
+      "tags": ["underwater", "reef", "coral", "aquatic"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "dreamscape",
+      "name": "Surreal Dreamscape",
+      "description": "Floating islands and impossible architecture",
+      "prompt": "Ethereal dream world with levitating islands, cascading waterfalls upward, melting clocks, pastel skies, subconscious fluidity, surreal psychological landscape.",
+      "tags": ["dream", "surreal", "floating", "ethereal"],
+      "category": "Abstract"
+    },
+    {
+      "id": "underwater_cave",
+      "name": "Underwater Cave",
+      "description": "Submerged cavern with marine life and light rays",
+      "prompt": "Deep underwater cave with rays of sunlight piercing through openings, colorful fish swimming, coral formations, bubbles rising, mysterious aquatic exploration site, serene blue-toned atmosphere.",
+      "tags": ["underwater", "cave", "marine", "exploration"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "futuristic_city",
+      "name": "Futuristic City",
+      "description": "High-tech metropolis with skyscrapers and flying vehicles",
+      "prompt": "Sleek futuristic cityscape with towering glass skyscrapers, flying cars zipping between buildings, holographic billboards, neon lights, bustling streets below, advanced sci-fi urban environment, night time glow.",
+      "tags": ["futuristic", "city", "scifi", "urban"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "pirate_ship",
+      "name": "Pirate Ship Deck",
+      "description": "Wooden sailing vessel on high seas with sails and rigging",
+      "prompt": "Wooden pirate ship deck with billowing sails, rope rigging, cannon ports, treasure chests, ocean waves crashing against hull, salty sea air, adventurous seafaring atmosphere, golden sunset light.",
+      "tags": ["pirate", "ship", "sea", "adventure"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "enchanted_library",
+      "name": "Enchanted Library",
+      "description": "Magical repository with floating books and arcane artifacts",
+      "prompt": "Mystical library with towering shelves, books floating in air, glowing runes on spines, ancient scrolls, candlelight, enchanted knowledge repository, whimsical fantasy setting.",
+      "tags": ["enchanted", "library", "magic", "books"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "post_apocalyptic_ruins",
+      "name": "Post-Apocalyptic Ruins",
+      "description": "Overgrown urban remnants after catastrophe",
+      "prompt": "Ruined city overgrown with vines and weeds, collapsed buildings, rusted vehicles, hazy sky, survivor camps in distance, desolate end-of-world atmosphere, muted colors.",
+      "tags": ["apocalyptic", "ruins", "overgrown", "survival"],
+      "category": "Horror"
+    },
+    {
+      "id": "steampunk_workshop",
+      "name": "Steampunk Workshop",
+      "description": "Victorian tech lab with gears, pipes, and inventions",
+      "prompt": "Cluttered steampunk workshop with brass gears, steam pipes, workbench covered in gadgets, gas lamps, leather aprons, inventive mechanical chaos, warm copper tones.",
+      "tags": ["steampunk", "workshop", "victorian", "gears"],
+      "category": "Vintage"
+    },
+    {
+      "id": "zen_garden",
+      "name": "Zen Garden",
+      "description": "Tranquil Japanese rock garden with raked sand",
+      "prompt": "Minimalist zen garden with raked white sand patterns, strategically placed rocks, bonsai trees, bamboo fence, serene meditation space, soft natural light, peaceful contemplative atmosphere.",
+      "tags": ["zen", "garden", "japanese", "tranquil"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "carnival",
+      "name": "Carnival Midway",
+      "description": "Festive fairground with rides, games, and lights",
+      "prompt": "Vibrant carnival midway with ferris wheel, game booths, colorful tents, string lights overhead, cotton candy stands, excited crowds, joyful festive atmosphere, evening glow.",
+      "tags": ["carnival", "festive", "rides", "games"],
+      "category": "Public Space"
+    },
+    {
+      "id": "ice_cave",
+      "name": "Ice Cave",
+      "description": "Frozen cavern with translucent blue ice walls",
+      "prompt": "Glistening ice cave with translucent blue walls, icicles hanging from ceiling, frozen floor, faint light filtering through ice, cold ethereal beauty, arctic exploration vibe.",
+      "tags": ["ice", "cave", "frozen", "arctic"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "victorian_greenhouse",
+      "name": "Victorian Greenhouse",
+      "description": "Ornate glass conservatory filled with exotic plants",
+      "prompt": "Elaborate Victorian greenhouse with wrought iron frame, glass panels, lush tropical plants, ferns and orchids, misty humid air, period botanical sanctuary, diffused sunlight.",
+      "tags": ["victorian", "greenhouse", "plants", "exotic"],
+      "category": "Vintage"
+    },
+    {
+      "id": "space_colony",
+      "name": "Space Colony Dome",
+      "description": "Domed habitat on barren alien planet",
+      "prompt": "Transparent domed space colony on rocky alien surface, hydroponic gardens inside, solar panels, astronauts in suits outside, starry sky, futuristic off-world settlement.",
+      "tags": ["space", "colony", "dome", "alien"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "medieval_market",
+      "name": "Medieval Market Square",
+      "description": "Bustling town plaza with vendor stalls and crowds",
+      "prompt": "Lively medieval market square with wooden stalls selling wares, colorful banners, horse carts, townsfolk bartering, cobblestone ground, historical trading hub atmosphere.",
+      "tags": ["medieval", "market", "square", "bustling"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "isolated_forest_cabin",
+      "name": "Isolated Forest Cabin",
+      "description": "Remote woodland cabin at night with eerie surroundings",
+      "prompt": "Secluded log cabin in dark forest, dim lantern light from windows, surrounding trees casting shadows, misty ground, unsettling isolation, potential for supernatural encounters.",
+      "tags": ["horror", "cabin", "forest", "isolated"],
+      "category": "Horror"
+    },
+    {
+      "id": "art_deco_ballroom",
+      "name": "Art Deco Ballroom",
+      "description": "Elegant 1920s dance hall with geometric designs",
+      "prompt": "Glamorous art deco ballroom with geometric patterns, crystal chandeliers, polished marble floor, mirrored walls, jazz band stage, luxurious roaring twenties elegance.",
+      "tags": ["art_deco", "ballroom", "1920s", "elegant"],
+      "category": "Vintage"
+    },
+    {
+      "id": "quantum_lab",
+      "name": "Quantum Physics Lab",
+      "description": "Advanced facility with experimental equipment",
+      "prompt": "High-tech quantum lab with particle accelerators, cryogenic chambers, computer arrays, laser beams, sterile white environment, cutting-edge scientific research vibe.",
+      "tags": ["quantum", "lab", "physics", "high_tech"],
+      "category": "Sci-Fi"
+    },
+    {
+      "id": "fairy_glade",
+      "name": "Fairy Glade",
+      "description": "Magical forest clearing with miniature dwellings",
+      "prompt": "Whimsical fairy glade with glowing flowers, tiny mushroom houses, sparkling dew, butterflies and fireflies, soft pastel lighting, enchanting miniature world.",
+      "tags": ["fairy", "glade", "magical", "tiny"],
+      "category": "Fantasy"
+    },
+    {
+      "id": "abandoned_amusement_park",
+      "name": "Abandoned Amusement Park",
+      "description": "Decayed fairground with rusty rides and weeds",
+      "prompt": "Eerie abandoned amusement park with rusted rollercoasters, overgrown paths, faded clown signs, broken ticket booths, foggy atmosphere, nostalgic yet creepy decay.",
+      "tags": ["abandoned", "amusement_park", "rusty", "overgrown"],
+      "category": "Horror"
+    },
+    {
+      "id": "rooftop_garden",
+      "name": "Rooftop Garden",
+      "description": "Urban green space with plants and city views",
+      "prompt": "Lush rooftop garden with raised planters, flowers and herbs, lounge seating, string lights, panoramic city skyline view, refreshing urban oasis escape.",
+      "tags": ["rooftop", "garden", "urban", "oasis"],
+      "category": "Urban"
+    },
+    {
+      "id": "black_sand_beach",
+      "name": "Black Sand Beach",
+      "description": "Volcanic shoreline with dark sand and waves",
+      "prompt": "Dramatic black sand beach from volcanic ash, crashing ocean waves, rocky cliffs, overcast sky, unique geological formation, powerful natural contrast.",
+      "tags": ["volcanic", "beach", "black_sand", "shoreline"],
+      "category": "Outdoor"
+    },
+    {
+      "id": "holographic_room",
+      "name": "Holographic Projection Room",
+      "description": "Futuristic space with interactive 3D holograms",
+      "prompt": "Minimalist room with holographic projectors, floating 3D images, touch interfaces, ambient blue lighting, high-tech presentation or entertainment space, immersive digital experience.",
+      "tags": ["holographic", "projection", "interactive", "futuristic"],
+      "category": "Sci-Fi"
+    }
+  ]
+}

@@ -1,0 +1,521 @@
+{
+  "styles": [
+    {
+      "id": "UltraRealistic",
+      "name": "Ultra Realistic",
+      "positive": "Ultra realistic, incredibly detailed, lifelike skin textures, subsurface scattering, perfect lighting, 8K quality, professional photography",
+      "negative": "no anime, no cartoon, no CGI, no low-res, no painting, no sketch"
+    },
+    {
+      "id": "PhotoRealistic",
+      "name": "Photo Realistic",
+      "positive": "Photorealistic, DSLR quality, crisp details, natural lighting, professional color grading, shallow depth of field",
+      "negative": "no anime, no cel-shaded, no pixel art, no oil paint, no watercolor, no stylized"
+    },
+    {
+      "id": "CinematicRealism",
+      "name": "Cinematic Realism",
+      "positive": "Cinematic realism, film-like quality, dramatic lighting, professional color grading, anamorphic lens effects, 2.39:1 aspect mindset",
+      "negative": "no cartoon, no anime, no pixel, no sketch, no watercolor, no cel-shading"
+    },
+    {
+      "id": "IMAXQuality",
+      "name": "IMAX Quality",
+      "positive": "IMAX-level quality, extreme resolution, crystal clarity, dynamic range, theatrical presentation, pristine detail",
+      "negative": "no low-res, no anime, no cartoon, no painting, no stylized eyes, no disproportionate head"
+    },
+    {
+      "id": "HyperDetailed",
+      "name": "Hyper Detailed",
+      "positive": "Hyper-detailed, intricate textures, fine details visible, ultra-sharp focus, maximum fidelity, microscopic accuracy",
+      "negative": "no blurry, no low detail, no cartoon, no anime, no abstract, no stylized"
+    },
+    {
+      "id": "StylizedRealism",
+      "name": "Stylized Realism",
+      "positive": "Stylized realism, visible painterly brush strokes, soft 35mm film grain, artistic texture and brushwork, mature proportions, grounded anatomy, cinematic",
+      "negative": "no anime, no cel-shaded, no pixel art, no cartoon, no CGI, no photorealistic sharpness"
+    },
+    {
+      "id": "Anime",
+      "name": "Anime",
+      "positive": "Clean anime style, sharp lines, cel-shaded, vibrant colors, manga influence",
+      "negative": "no photorealistic, no realistic skin, no CGI, no oil paint, no sketch, no vintage film"
+    },
+    {
+      "id": "AnimeDetailed",
+      "name": "Anime (Detailed)",
+      "positive": "Highly detailed anime, intricate linework, dynamic shading, vibrant colors, professional manga quality",
+      "negative": "no realistic, no photoreal, no CGI, no watercolor, no pixel art, no film noir"
+    },
+    {
+      "id": "Chibi",
+      "name": "Chibi",
+      "positive": "Chibi style, super deformed, large heads, tiny bodies, cute proportions, kawaii aesthetic",
+      "negative": "no realistic, no photoreal, no detailed anatomy, no mature proportions, no film"
+    },
+    {
+      "id": "PixelArt",
+      "name": "Pixel Art",
+      "positive": "Retro pixel art, 16-bit aesthetic, crisp pixels, nostalgic game art style",
+      "negative": "no realistic, no anime, no photoreal, no painting, no film, no CGI"
+    },
+    {
+      "id": "PixelArtHD",
+      "name": "Pixel Art HD",
+      "positive": "High-definition pixel art, 32-bit quality, smooth gradients, detailed sprites, modern retro style",
+      "negative": "no realistic, no anime, no photoreal, no painting, no sketch, no film"
+    },
+    {
+      "id": "Voxel",
+      "name": "Voxel Art",
+      "positive": "Voxel art, 3D pixel blocks, Minecraft aesthetic, cubic geometry, isometric perspective",
+      "negative": "no realistic, no anime, no photoreal, no painting, no sketch, no smooth surfaces"
+    },
+    {
+      "id": "OilPainting",
+      "name": "Oil Painting",
+      "positive": "Oil painting, thick impressionist strokes, rich color palette, visible brush texture",
+      "negative": "no anime, no pixel, no photoreal, no cel-shaded, no sketch, no digital clean"
+    },
+    {
+      "id": "Watercolor",
+      "name": "Watercolor",
+      "positive": "Soft watercolor, flowing washes, delicate paper texture, transparent layers",
+      "negative": "no anime, no pixel, no photoreal, no oil paint, no sketch, no sharp lines"
+    },
+    {
+      "id": "Sketch",
+      "name": "Pencil Sketch",
+      "positive": "Hand-drawn pencil sketch, hatching and cross-hatching, artistic linework, graphite textures",
+      "negative": "no anime, no cel-shaded, no photoreal, no watercolor, no oil, no digital"
+    },
+    {
+      "id": "InkDrawing",
+      "name": "Ink Drawing",
+      "positive": "Ink drawing, bold black lines, precise linework, traditional pen and ink technique",
+      "negative": "no anime, no cel-shaded, no photoreal, no watercolor, no oil, no pixel"
+    },
+    {
+      "id": "Charcoal",
+      "name": "Charcoal",
+      "positive": "Charcoal drawing, dramatic contrast, smudged shadows, expressive marks, monochrome",
+      "negative": "no anime, no pixel, no photoreal, no watercolor, no oil, no colorful"
+    },
+    {
+      "id": "DigitalPainting",
+      "name": "Digital Painting",
+      "positive": "Digital painting, smooth blending, vibrant colors, professional illustration quality",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no film noir, no vintage"
+    },
+    {
+      "id": "ConceptArt",
+      "name": "Concept Art",
+      "positive": "Concept art style, dramatic composition, professional game/film quality, dynamic perspective",
+      "negative": "no anime, no pixel, no photoreal, no watercolor, no sketch, no cel-shaded"
+    },
+    {
+      "id": "Matte",
+      "name": "Matte Painting",
+      "positive": "Matte painting, epic scale, photorealistic environments, cinematic grandeur, seamless integration",
+      "negative": "no anime, no pixel, no sketch, no watercolor, no cel-shaded, no low detail"
+    },
+    {
+      "id": "CelShaded",
+      "name": "Cel-Shaded",
+      "positive": "Cel-shaded, bold outlines, flat color zones, comic book style, toon shader",
+      "negative": "no realistic, no photoreal, no CGI, no painting, no sketch, no film"
+    },
+    {
+      "id": "ComicBook",
+      "name": "Comic Book",
+      "positive": "Comic book style, dynamic panels, halftone dots, bold colors, action lines, speech bubbles",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no sketch, no film"
+    },
+    {
+      "id": "Manga",
+      "name": "Manga",
+      "positive": "Manga style, dramatic speed lines, screentone, high contrast black and white, expressive emotions",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no pixel, no colorful"
+    },
+    {
+      "id": "Vintage35mm",
+      "name": "Vintage 35mm Film",
+      "positive": "Vintage 35mm film, grain texture, warm tones, analog photography aesthetic",
+      "negative": "no anime, no pixel, no CGI, no watercolor, no oil, no cel-shaded"
+    },
+    {
+      "id": "FilmNoir",
+      "name": "Film Noir",
+      "positive": "Film noir, high contrast black and white, dramatic shadows, classic Hollywood cinematography",
+      "negative": "no anime, no pixel, no watercolor, no oil, no cel-shaded, no colorful"
+    },
+    {
+      "id": "Polaroid",
+      "name": "Polaroid",
+      "positive": "Polaroid instant photo, white border frame, warm nostalgic colors, slight overexposure, vintage aesthetic",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no modern clarity"
+    },
+    {
+      "id": "Lomography",
+      "name": "Lomography",
+      "positive": "Lomography, saturated colors, vignetting, light leaks, cross-processed film, experimental photography",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no clinical precision"
+    },
+    {
+      "id": "Cyberpunk",
+      "name": "Cyberpunk",
+      "positive": "Cyberpunk aesthetic, neon lighting, high-tech low-life, dystopian future, vibrant colors against darkness",
+      "negative": "no vintage, no watercolor, no sketch, no oil, no cel-shaded, no photoreal"
+    },
+    {
+      "id": "Steampunk",
+      "name": "Steampunk",
+      "positive": "Steampunk aesthetic, Victorian-era machinery, brass and copper, intricate gears, retro-futuristic",
+      "negative": "no anime, no pixel, no watercolor, no sketch, no cel-shaded, no modern tech"
+    },
+    {
+      "id": "Vaporwave",
+      "name": "Vaporwave",
+      "positive": "Vaporwave aesthetic, pastel colors, glitch art, 90s nostalgia, Greek statues, palm trees, grid patterns",
+      "negative": "no realistic, no photoreal, no oil, no sketch, no film noir, no muted colors"
+    },
+    {
+      "id": "Fantasy",
+      "name": "Fantasy Art",
+      "positive": "Fantasy art, magical atmosphere, ethereal lighting, rich details, imaginative elements",
+      "negative": "no anime, no pixel, no photoreal, no watercolor, no sketch, no film noir"
+    },
+    {
+      "id": "DarkFantasy",
+      "name": "Dark Fantasy",
+      "positive": "Dark fantasy, gothic atmosphere, moody lighting, ominous details, dramatic shadows, supernatural elements",
+      "negative": "no anime, no pixel, no watercolor, no sketch, no bright colors, no cheerful"
+    },
+    {
+      "id": "SciFi",
+      "name": "Sci-Fi",
+      "positive": "Sci-fi aesthetic, futuristic technology, clean lines, advanced materials, speculative design",
+      "negative": "no vintage, no watercolor, no oil, no sketch, no cel-shaded, no film noir"
+    },
+    {
+      "id": "Surrealism",
+      "name": "Surrealism",
+      "positive": "Surrealist art, dreamlike imagery, impossible physics, subconscious exploration, Salvador Dali influence",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no cel-shaded, no literal representation"
+    },
+    {
+      "id": "Abstract",
+      "name": "Abstract",
+      "positive": "Abstract art, non-representational, bold shapes, color field, geometric or organic forms",
+      "negative": "no realistic, no photoreal, no anime, no pixel, no literal subjects, no figurative"
+    },
+    {
+      "id": "Minimalist",
+      "name": "Minimalist",
+      "positive": "Minimalist design, clean composition, negative space, simple geometry, limited color palette",
+      "negative": "no detailed, no ornate, no busy, no realistic, no anime, no pixel"
+    },
+    {
+      "id": "PopArt",
+      "name": "Pop Art",
+      "positive": "Pop art, bold colors, Ben-Day dots, high contrast, Andy Warhol style, commercial aesthetic",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no sketch, no muted tones"
+    },
+    {
+      "id": "ArtDeco",
+      "name": "Art Deco",
+      "positive": "Art Deco style, geometric patterns, luxurious materials, symmetrical design, 1920s glamour",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no cel-shaded, no modern minimalism"
+    },
+    {
+      "id": "ArtNouveau",
+      "name": "Art Nouveau",
+      "positive": "Art Nouveau, flowing organic lines, floral motifs, elegant curves, decorative details",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no cel-shaded, no geometric rigidity"
+    },
+    {
+      "id": "Baroque",
+      "name": "Baroque",
+      "positive": "Baroque style, dramatic lighting, rich ornamental details, grandeur, chiaroscuro, classical painting",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no cel-shaded, no minimalist"
+    },
+    {
+      "id": "Impressionist",
+      "name": "Impressionist",
+      "positive": "Impressionist style, visible brushstrokes, light effects, vibrant colors, Monet influence, plein air painting",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no cel-shaded, no sharp details"
+    },
+    {
+      "id": "Expressionist",
+      "name": "Expressionist",
+      "positive": "Expressionist art, emotional intensity, distorted forms, vivid colors, subjective perspective",
+      "negative": "no anime, no pixel, no photoreal, no sketch, no cel-shaded, no literal representation"
+    },
+    {
+      "id": "Ukiyo-e",
+      "name": "Ukiyo-e",
+      "positive": "Ukiyo-e woodblock print, flat color areas, bold outlines, Japanese aesthetic, Hokusai style",
+      "negative": "no realistic, no photoreal, no anime, no pixel, no western art, no 3D depth"
+    },
+    {
+      "id": "Graffiti",
+      "name": "Graffiti",
+      "positive": "Graffiti art, urban street style, spray paint texture, bold letters, vibrant colors, hip-hop culture",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no sketch, no classical"
+    },
+    {
+      "id": "LowPoly",
+      "name": "Low Poly",
+      "positive": "Low poly 3D, geometric facets, angular shapes, minimalist polygons, modern digital aesthetic",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no smooth surfaces"
+    },
+    {
+      "id": "Isometric",
+      "name": "Isometric",
+      "positive": "Isometric perspective, 3D technical drawing, equal angles, game art style, clean geometry",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no perspective distortion"
+    },
+    {
+      "id": "Claymation",
+      "name": "Claymation",
+      "positive": "Claymation style, stop-motion texture, sculpted appearance, tactile surfaces, Wallace and Gromit aesthetic",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no smooth digital"
+    },
+    {
+      "id": "PaperCraft",
+      "name": "Paper Craft",
+      "positive": "Paper craft, cut paper layers, dimensional shadow boxes, handmade aesthetic, textured card stock",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no smooth surfaces"
+    },
+    {
+      "id": "Stained Glass",
+      "name": "Stained Glass",
+      "positive": "Stained glass window, colorful translucent panels, lead came lines, backlit glow, Gothic cathedral style",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no opaque surfaces"
+    },
+    {
+      "id": "Mosaic",
+      "name": "Mosaic",
+      "positive": "Mosaic art, small tile pieces, tessellated pattern, ancient Roman style, intricate detail",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no smooth surfaces"
+    },
+    {
+      "id": "Neon",
+      "name": "Neon",
+      "positive": "Neon sign aesthetic, glowing tubes, vibrant colors against darkness, electric buzz, 80s nostalgia",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no sketch, no muted tones"
+    },
+    {
+      "id": "Holographic",
+      "name": "Holographic",
+      "positive": "Holographic effect, iridescent colors, rainbow shimmer, reflective surfaces, futuristic aesthetic",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no sketch, no matte finish"
+    },
+    {
+      "id": "Glitch",
+      "name": "Glitch Art",
+      "positive": "Glitch art, digital corruption, RGB shift, pixel sorting, databending, distorted scanlines",
+      "negative": "no realistic, no photoreal, no watercolor, no oil, no sketch, no clean imagery"
+    },
+    {
+      "id": "Psychedelic",
+      "name": "Psychedelic",
+      "positive": "Psychedelic art, swirling patterns, vibrant colors, kaleidoscopic, trippy visuals, 60s counterculture",
+      "negative": "no realistic, no photoreal, no sketch, no muted, no minimalist, no film noir"
+    },
+    {
+      "id": "MonochromePhoto",
+      "name": "Monochrome Photo",
+      "positive": "Black and white photography, rich tonal range, dramatic contrast, fine art quality, Ansel Adams style",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no colorful"
+    },
+    {
+      "id": "Sepia",
+      "name": "Sepia Tone",
+      "positive": "Sepia tone photograph, warm brown tones, vintage aesthetic, antique photo quality, nostalgic feel",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no vibrant colors"
+    },
+    {
+      "id": "Infrared",
+      "name": "Infrared Photo",
+      "positive": "Infrared photography, white foliage, dark skies, ethereal atmosphere, surreal landscape",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no normal colors"
+    },
+    {
+      "id": "XRay",
+      "name": "X-Ray",
+      "positive": "X-ray imaging, skeletal structure visible, medical aesthetic, monochrome, transparent layers",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no opaque surfaces"
+    },
+    {
+      "id": "Thermal",
+      "name": "Thermal Imaging",
+      "positive": "Thermal camera, heat signature colors, temperature gradient, scientific visualization",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no natural colors"
+    },
+    {
+      "id": "Blueprint",
+      "name": "Blueprint",
+      "positive": "Blueprint technical drawing, white lines on blue background, architectural plan, precise measurements",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no colorful"
+    },
+    {
+      "id": "Tattoo",
+      "name": "Tattoo Art",
+      "positive": "Tattoo art style, bold black outlines, traditional flash art, shading techniques, skin texture",
+      "negative": "no realistic, no photoreal, no watercolor, no pixel, no sketch, no cel-shaded"
+    },
+    {
+      "id": "Embroidery",
+      "name": "Embroidery",
+      "positive": "Embroidery stitching, thread texture, fabric surface, folk art pattern, handcrafted detail",
+      "negative": "no realistic, no photoreal, no anime, no pixel, no painting, no smooth surface"
+    },
+    {
+      "id": "ASCII",
+      "name": "ASCII Art",
+      "positive": "ASCII art, text characters, monospace font, terminal aesthetic, retro computing",
+      "negative": "no realistic, no photoreal, no anime, no pixel, no painting, no smooth imagery"
+    },
+    {
+      "id": "StreetPhotography",
+      "name": "Street Photography",
+      "positive": "Street photography, candid moments, urban environment, documentary style, decisive moment, human interest",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no staged composition"
+    },
+    {
+      "id": "MacroPhotography",
+      "name": "Macro Photography",
+      "positive": "Macro photography, extreme close-up, intricate details, shallow depth of field, tiny world perspective",
+      "negative": "no anime, no pixel, no painting, no sketch, no cel-shaded, no wide angle"
+    },
+    {
+      "id": "Cubism",
+      "name": "Cubism",
+      "positive": "Cubist style, geometric abstraction, multiple viewpoints, fragmented forms, Picasso influence",
+      "negative": "no realistic, no photoreal, no anime, no watercolor, no smooth blending, no literal subjects"
+    },
+    {
+      "id": "Renaissance",
+      "name": "Renaissance Painting",
+      "positive": "Renaissance art, detailed realism, sfumato technique, balanced composition, da Vinci style",
+      "negative": "no anime, no pixel, no abstract, no modern, no cel-shaded, no low detail"
+    },
+    {
+      "id": "Futurism",
+      "name": "Futurism",
+      "positive": "Futurist art, dynamic motion, speed lines, fragmented energy, mechanical aesthetic, Boccioni influence",
+      "negative": "no realistic, no photoreal, no anime, no watercolor, no still life, no calm"
+    },
+    {
+      "id": "Pointillism",
+      "name": "Pointillism",
+      "positive": "Pointillist technique, dotted color application, optical blending, Seurat style, vibrant dots",
+      "negative": "no realistic, no photoreal, no anime, no brush strokes, no blending, no smooth surfaces"
+    },
+    {
+      "id": "Bauhaus",
+      "name": "Bauhaus",
+      "positive": "Bauhaus design, geometric abstraction, primary colors, functional minimalism, modernist aesthetic",
+      "negative": "no ornate, no realistic, no photoreal, no anime, no organic forms, no decorative"
+    },
+    {
+      "id": "VictorianIllustration",
+      "name": "Victorian Illustration",
+      "positive": "Victorian illustration, intricate linework, ornate details, cross-hatching, period aesthetic",
+      "negative": "no anime, no pixel, no photoreal, no watercolor, no modern, no simple lines"
+    },
+    {
+      "id": "Dieselpunk",
+      "name": "Dieselpunk",
+      "positive": "Dieselpunk aesthetic, 1940s industrial tech, gritty mechanics, art deco influences, wartime retro-futurism",
+      "negative": "no anime, no cyberpunk, no steampunk, no clean modern, no fantasy, no bright colors"
+    },
+    {
+      "id": "Atompunk",
+      "name": "Atompunk",
+      "positive": "Atompunk style, 1950s atomic age, retro-futuristic tech, streamlined designs, optimistic sci-fi",
+      "negative": "no steampunk, no cyberpunk, no realistic, no anime, no dark dystopia, no vintage Victorian"
+    },
+    {
+      "id": "Afrofuturism",
+      "name": "Afrofuturism",
+      "positive": "Afrofuturist aesthetic, African diaspora influences, futuristic tech, vibrant cultural motifs, speculative vision",
+      "negative": "no historical, no realistic, no anime, no Western-centric, no muted colors, no dystopian grit"
+    },
+    {
+      "id": "Solarpunk",
+      "name": "Solarpunk",
+      "positive": "Solarpunk aesthetic, sustainable future, eco-friendly tech, lush greenery integrated, optimistic utopian",
+      "negative": "no dystopian, no cyberpunk, no steampunk, no dark tones, no industrial pollution, no anime"
+    },
+    {
+      "id": "Woodcut",
+      "name": "Woodcut Print",
+      "positive": "Woodcut printmaking, bold carved lines, high contrast, textured grain, folk art influence",
+      "negative": "no smooth gradients, no photoreal, no anime, no watercolor, no digital clean, no colorful"
+    },
+    {
+      "id": "Linocut",
+      "name": "Linocut",
+      "positive": "Linocut relief print, sharp cut edges, blocky shapes, layered colors, graphic poster style",
+      "negative": "no realistic, no photoreal, no anime, no painting, no sketch, no subtle shading"
+    },
+    {
+      "id": "Silkscreen",
+      "name": "Silkscreen Print",
+      "positive": "Silkscreen printing, flat color layers, stencil technique, Warhol pop art influence, bold graphics",
+      "negative": "no realistic, no photoreal, no anime, no watercolor, no oil, no textured brushwork"
+    },
+    {
+      "id": "Etching",
+      "name": "Etching",
+      "positive": "Etching print, fine incised lines, cross-hatching depth, Rembrandt style, intaglio technique",
+      "negative": "no colorful, no anime, no pixel, no photoreal, no bold blocks, no digital"
+    },
+    {
+      "id": "Lithography",
+      "name": "Lithography",
+      "positive": "Lithographic print, smooth tonal gradients, crayon textures, Toulouse-Lautrec poster style",
+      "negative": "no anime, no pixel, no photoreal, no carved lines, no stencil, no modern digital"
+    },
+    {
+      "id": "CyberpunkAnime",
+      "name": "Cyberpunk Anime",
+      "positive": "Cyberpunk anime fusion, neon-lit dystopia, detailed mecha, Ghost in the Shell influence, vibrant night scenes",
+      "negative": "no realistic, no photoreal, no vintage, no watercolor, no sketch, no bright daylight"
+    },
+    {
+      "id": "SteampunkFantasy",
+      "name": "Steampunk Fantasy",
+      "positive": "Steampunk fantasy blend, Victorian gears with magical elements, brass dragons, enchanted airships, intricate details",
+      "negative": "no modern tech, no cyberpunk, no realistic, no anime, no simple minimalism, no dark horror"
+    },
+    {
+      "id": "SurrealCyberpunk",
+      "name": "Surreal Cyberpunk",
+      "positive": "Surreal cyberpunk mix, distorted neon realities, floating data streams, Dali meets Blade Runner, mind-bending visuals",
+      "negative": "no literal, no photoreal, no anime, no vintage, no grounded, no normal physics"
+    },
+    {
+      "id": "ImpressionistSciFi",
+      "name": "Impressionist Sci-Fi",
+      "positive": "Impressionist sci-fi fusion, brushy futuristic landscapes, light-dappled spaceships, Monet meets Star Wars",
+      "negative": "no sharp details, no photoreal, no anime, no dark tones, no precise lines, no cel-shaded"
+    },
+    {
+      "id": "BaroqueDarkFantasy",
+      "name": "Baroque Dark Fantasy",
+      "positive": "Baroque dark fantasy blend, ornate shadowy realms, gilded monsters, dramatic chiaroscuro, Caravaggio meets Lovecraft",
+      "negative": "no bright, no anime, no pixel, no minimalist, no modern, no cheerful elements"
+    },
+    {
+      "id": "Custom",
+      "name": "Custom",
+      "positive": "Custom style",
+      "negative": "no unwanted elements"
+    }
+  ],
+  "default": "StylizedRealism"
+}
