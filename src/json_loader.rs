@@ -84,40 +84,20 @@ pub struct GenericLibrary {
 
 impl GenericLibrary {
     pub fn extract_items(&self) -> Vec<GenericItem> {
-        let mut items = Vec::new();
-        let Some(obj) = self.data.as_object() else { return items };
-        for (_, value) in obj {
+        let parse  = |v: &serde_json::Value| serde_json::from_value::<GenericItem>(v.clone()).ok();
+        let from_arr = |a: &Vec<serde_json::Value>| a.iter().filter_map(parse).collect::<Vec<_>>();
+        let Some(obj) = self.data.as_object() else { return vec![] };
+        obj.values().flat_map(|value| {
             if let Some(arr) = value.as_array() {
-                for v in arr {
-                    if let Ok(item) = serde_json::from_value(v.clone()) { items.push(item); }
-                }
-            } else if let Some(nested) = value.as_object() {
-                if let Some(cats) = nested.get("categories").and_then(|v| v.as_array()) {
-                    for cat in cats {
-                        if let Some(cat_obj) = cat.as_object() {
-                            // Check for 'poses' or 'expressions' arrays within each category
-                            for key in &["poses", "expressions", "items"] {
-                                if let Some(arr) = cat_obj.get(*key).and_then(|v| v.as_array()) {
-                                    for v in arr {
-                                        if let Ok(item) = serde_json::from_value(v.clone()) { items.push(item); }
-                                    }
-                                }
-                            }
-                            // Fallback: check all OTHER arrays in category object (skip already processed)
-                            for (key, arr) in cat_obj {
-                                if key == "poses" || key == "expressions" || key == "items" { continue; }
-                                if let Some(arr) = arr.as_array() {
-                                    for v in arr {
-                                        if let Ok(item) = serde_json::from_value(v.clone()) { items.push(item); }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        items
+                from_arr(arr)
+            } else if let Some(cats) = value.as_object()
+                .and_then(|o| o.get("categories")).and_then(|c| c.as_array())
+            {
+                cats.iter().filter_map(|c| c.as_object())
+                    .flat_map(|cat| cat.values().filter_map(|v| v.as_array()).flat_map(from_arr))
+                    .collect()
+            } else { vec![] }
+        }).collect()
     }
 }
 
@@ -135,7 +115,7 @@ pub struct GenericItem {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct StickFigure { 
-    pub points: HashMap<String, Vec<f32>>  // Support both [x,y] and [x,y,z]
+    pub points: HashMap<String, Vec<f32>>
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -144,49 +124,123 @@ pub struct Semantics { pub prompt: String }
 impl GenericItem {
     pub fn to_pose(&self, cx: f32, cy: f32, scale: f32) -> Option<crate::pose::Pose> {
         let sf = self.stick_figure.as_ref()?;
-        
-        // Helper to get point with 3D support
+        let sk = crate::skeleton::get();
+
+        // Helper to get point with smart Z defaults based on anatomy
         let pt = |name: &str| -> (f32, f32, f32) {
             sf.points.get(name).map(|p| {
-                let x = cx + p[0] * scale;
-                let y = cy - p[1] * scale;
-                let z = if p.len() >= 3 { p[2] * scale } else { 0.0 };
-                (x, y, z)
+                let z = if p.len() >= 3 { 
+                    p[2] * scale 
+                } else {
+                    // Smart depth defaults based on anatomy when Z is missing
+                    match name {
+                        "left_elbow" | "right_elbow" => -4.0 * scale,  // Arms slightly forward
+                        "left_wrist" | "right_wrist" => -4.0 * scale,
+                        "left_knee" | "right_knee" => 6.0 * scale,     // Legs slightly back
+                        "left_ankle" | "right_ankle" => 6.0 * scale,
+                        "pelvis" => 4.0 * scale,                        // Pelvis slightly back
+                        _ => 0.0,                                       // Head, neck, shoulders at center
+                    }
+                };
+                (cx + p[0] * scale, cy - p[1] * scale, z)
             }).unwrap_or((cx, cy, 0.0))
         };
-        
-        let j = |name: &str| { 
-            let (x, y, z) = pt(name); 
-            crate::pose::Joint::new_3d(x, y, z) 
-        };
-        
-        // Generate wrist from elbow (extend downward by FOREARM length)
-        let wrist = |elbow_name: &str| {
-            let (ex, ey, ez) = pt(elbow_name);
-            crate::pose::Joint::new_3d(ex, ey + 59.4, ez) // FOREARM = 89.4 * 2/3
-        };
-        
-        // Generate ankle from knee (extend downward by SHIN length)
-        let ankle = |knee_name: &str| {
-            let (kx, ky, kz) = pt(knee_name);
-            crate::pose::Joint::new_3d(kx, ky + 56.0, kz) // SHIN = 80.0 * 2/3
-        };
+        let j = |name: &str| { let (x, y, z) = pt(name); crate::pose::Joint::new_3d(x, y, z) };
 
-        Some(crate::pose::Pose {
+        let wrist = |elbow: &str| {
+            let (ex, ey, ez) = pt(elbow);
+            crate::pose::Joint::new_3d(ex, ey + sk.seg("forearm"), ez)
+        };
+        let ankle = |knee: &str| {
+            let (kx, ky, kz) = pt(knee);
+            crate::pose::Joint::new_3d(kx, ky + sk.seg("shin"), kz)
+        };
+        let (ls, rs) = (pt("left_shoulder"), pt("right_shoulder"));
+        let smid = crate::pose::Joint::new_3d((ls.0+rs.0)/2.0, (ls.1+rs.1)/2.0, (ls.2+rs.2)/2.0);
+
+        let mut pose = crate::pose::Pose {
             head:           j("head"),
+            neck:           smid,
             left_shoulder:  j("left_shoulder"),  right_shoulder: j("right_shoulder"),
             left_elbow:     j("left_elbow"),      right_elbow:    j("right_elbow"),
-            left_wrist:     wrist("left_elbow"),
-            right_wrist:    wrist("right_elbow"),
+            left_wrist:     wrist("left_elbow"),  right_wrist:    wrist("right_elbow"),
             left_fingers:   crate::pose::FingerSet::default(),
             right_fingers:  crate::pose::FingerSet::default(),
-            hips:           j("pelvis"),
+            waist:          crate::pose::Joint::new_3d(smid.x, smid.y + sk.seg("torso_upper"), smid.z),
+            crotch:         j("pelvis"),
             torso_lean: 0.0, torso_sway: 0.0,
             left_knee:      j("left_knee"),       right_knee:     j("right_knee"),
-            left_ankle:     ankle("left_knee"),
-            right_ankle:    ankle("right_knee"),
+            left_ankle:     ankle("left_knee"),   right_ankle:    ankle("right_knee"),
             head_tilt: 0.0, head_nod: 0.0, head_yaw: 0.0,
-        })
+        };
+        
+        // FORCE all segments to match skeleton.json - fixes bad JSON proportions
+        let constrain_dist = |from: (f32,f32,f32), to: (f32,f32,f32), len: f32| -> (f32,f32,f32) {
+            let (dx, dy, dz) = (to.0-from.0, to.1-from.1, to.2-from.2);
+            let d = (dx*dx + dy*dy + dz*dz).sqrt();
+            if d < 0.001 { return (from.0+len, from.1, from.2); }
+            let s = len / d;
+            (from.0+dx*s, from.1+dy*s, from.2+dz*s)
+        };
+        
+        // Fix shoulder width
+        let ls_pos = pose.left_shoulder.xyz();
+        let rs_pos = pose.right_shoulder.xyz();
+        let sh_mid = ((ls_pos.0+rs_pos.0)/2.0, (ls_pos.1+rs_pos.1)/2.0, (ls_pos.2+rs_pos.2)/2.0);
+        let ls_dir = (ls_pos.0-sh_mid.0, ls_pos.1-sh_mid.1, ls_pos.2-sh_mid.2);
+        let d = (ls_dir.0*ls_dir.0 + ls_dir.1*ls_dir.1 + ls_dir.2*ls_dir.2).sqrt();
+        if d > 0.001 {
+            let half_width = sk.seg("shoulder_width") / 2.0;
+            let s = half_width / d;
+            pose.left_shoulder.set_xyz((sh_mid.0+ls_dir.0*s, sh_mid.1+ls_dir.1*s, sh_mid.2+ls_dir.2*s));
+            pose.right_shoulder.set_xyz((sh_mid.0-ls_dir.0*s, sh_mid.1-ls_dir.1*s, sh_mid.2-ls_dir.2*s));
+        }
+        
+        // Update neck to shoulder midpoint
+        let ls = pose.left_shoulder.xyz();
+        let rs = pose.right_shoulder.xyz();
+        pose.neck.set_xyz(((ls.0+rs.0)/2.0, (ls.1+rs.1)/2.0, (ls.2+rs.2)/2.0));
+        
+        // Fix left arm
+        let lsh = pose.left_shoulder.xyz();
+        let lel = pose.left_elbow.xyz();
+        pose.left_elbow.set_xyz(constrain_dist(lsh, lel, sk.seg("arm")));
+        let lel = pose.left_elbow.xyz();
+        let lwr = pose.left_wrist.xyz();
+        pose.left_wrist.set_xyz(constrain_dist(lel, lwr, sk.seg("forearm")));
+        
+        // Fix right arm
+        let rsh = pose.right_shoulder.xyz();
+        let rel = pose.right_elbow.xyz();
+        pose.right_elbow.set_xyz(constrain_dist(rsh, rel, sk.seg("arm")));
+        let rel = pose.right_elbow.xyz();
+        let rwr = pose.right_wrist.xyz();
+        pose.right_wrist.set_xyz(constrain_dist(rel, rwr, sk.seg("forearm")));
+        
+        // Fix spine
+        let neck = pose.neck.xyz();
+        let waist = pose.waist.xyz();
+        pose.waist.set_xyz(constrain_dist(neck, waist, sk.seg("torso_upper")));
+        let waist = pose.waist.xyz();
+        let crotch = pose.crotch.xyz();
+        pose.crotch.set_xyz(constrain_dist(waist, crotch, sk.seg("torso_lower")));
+        
+        // Fix left leg
+        let crotch = pose.crotch.xyz();
+        let lkn = pose.left_knee.xyz();
+        pose.left_knee.set_xyz(constrain_dist(crotch, lkn, sk.seg("thigh")));
+        let lkn = pose.left_knee.xyz();
+        let lank = pose.left_ankle.xyz();
+        pose.left_ankle.set_xyz(constrain_dist(lkn, lank, sk.seg("shin")));
+        
+        // Fix right leg
+        let rkn = pose.right_knee.xyz();
+        pose.right_knee.set_xyz(constrain_dist(crotch, rkn, sk.seg("thigh")));
+        let rkn = pose.right_knee.xyz();
+        let rank = pose.right_ankle.xyz();
+        pose.right_ankle.set_xyz(constrain_dist(rkn, rank, sk.seg("shin")));
+        
+        Some(pose)
     }
 }
 
@@ -221,6 +275,7 @@ fn asset(name: &str) -> Result<&'static str, String> {
         "poses.json"                 => Ok(include_str!("../assets/poses.json")),
         "expressions.json"           => Ok(include_str!("../assets/expressions.json")),
         "environments.json"          => Ok(include_str!("../assets/environments.json")),
+        "skeleton.json"              => Ok(include_str!("../assets/skeleton.json")),
         _ => Err(format!("Asset '{name}' not embedded. Add it to json_loader.rs asset() to embed at compile time.")),
     }
 }

@@ -49,6 +49,36 @@
       "negative": "no realistic, no photoreal, no CGI, no watercolor, no pixel art, no film noir"
     },
     {
+      "id": "3DAnime",
+      "name": "3D Anime",
+      "positive": "3D anime style, cel-shaded 3D render, anime character models, soft studio lighting, vibrant anime colors, smooth 3D shading, anime aesthetics in 3D",
+      "negative": "no photorealistic, no realistic textures, no live-action, no low-poly, no voxel, no western cartoon"
+    },
+    {
+      "id": "RetroAnime",
+      "name": "Retro Anime",
+      "positive": "Retro anime style, 80s/90s aesthetic, hand-drawn animation, cel animation, vintage color palette, grainy texture",
+      "negative": "no modern CGI, no high-res, no digital clean, no photoreal, no 3D, no pixel art"
+    },
+    {
+      "id": "ShonenAnime",
+      "name": "Shonen Anime",
+      "positive": "Shonen anime style, action-packed scenes, exaggerated expressions, dynamic fight poses, bold lines, energetic colors",
+      "negative": "no shojo, no romance, no realistic proportions, no photoreal, no slow-paced, no pastel tones"
+    },
+    {
+      "id": "ShojoAnime",
+      "name": "Shojo Anime",
+      "positive": "Shojo anime style, romantic atmosphere, large eyes, floral backgrounds, soft colors, emotional close-ups",
+      "negative": "no shonen, no action, no realistic, no photoreal, no dark themes, no violence"
+    },
+    {
+      "id": "SeinenAnime",
+      "name": "Seinen Anime",
+      "positive": "Seinen anime style, mature themes, realistic character designs, detailed backgrounds, complex shading, subdued colors",
+      "negative": "no chibi, no kawaii, no photoreal, no childish elements, no simple stories, no bright colors"
+    },
+    {
       "id": "Chibi",
       "name": "Chibi",
       "positive": "Chibi style, super deformed, large heads, tiny bodies, cute proportions, kawaii aesthetic",

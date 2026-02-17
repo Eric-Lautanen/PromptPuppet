@@ -4,7 +4,7 @@
 mod app;
 mod pose;
 mod prompt;
-mod ui_canvas;
+mod skeleton;
 mod ui_panels;
 mod json_loader;
 mod canvas3d;
@@ -18,11 +18,7 @@ fn main() -> Result<(), eframe::Error> {
             .expect("Failed to load icon")
             .to_rgba8();
         let (width, height) = image.dimensions();
-        egui::IconData {
-            rgba: image.into_raw(),
-            width,
-            height,
-        }
+        egui::IconData { rgba: image.into_raw(), width, height }
     };
 
     let options = eframe::NativeOptions {

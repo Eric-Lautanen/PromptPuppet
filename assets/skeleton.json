@@ -1,0 +1,156 @@
+{
+  "head_size": 32.0,
+
+  "segments": {
+    "arm":            1.5,
+    "forearm":        1.2,
+    "thigh":          2.25,
+    "shin":           2.25,
+    "neck":           0.5,
+    "torso_upper":    1.5,
+    "torso_lower":    1.0,
+    "shoulder_width": 2.0
+  },
+
+  "bones": [
+    { "a": "left_shoulder",  "b": "left_elbow",    "color": [255,160,0] },
+    { "a": "left_elbow",     "b": "left_wrist",    "color": [255,200,0] },
+    { "a": "right_shoulder", "b": "right_elbow",   "color": [80,200,80] },
+    { "a": "right_elbow",    "b": "right_wrist",   "color": [120,220,100] },
+
+    { "a": "head",           "b": "neck",          "color": [180,80,255] },
+    { "a": "left_shoulder",  "b": "right_shoulder","color": [255,120,0] },
+    { "a": "left_shoulder",  "b": "waist",         "color": [255,100,0] },
+    { "a": "right_shoulder", "b": "waist",         "color": [100,200,100] },
+    { "a": "neck",           "b": "waist",         "color": [200,100,255] },
+
+    { "a": "waist",          "b": "crotch",        "color": [0,200,220] },
+    { "a": "crotch",         "b": "left_knee",     "color": [100,220,100] },
+    { "a": "left_knee",      "b": "left_ankle",    "color": [80,200,140] },
+    { "a": "crotch",         "b": "right_knee",    "color": [60,140,255] },
+    { "a": "right_knee",     "b": "right_ankle",   "color": [80,160,240] }
+  ],
+
+  "joints": [
+    { "name": "head",           "radius": 10.0, "color": [255,50,180] },
+    { "name": "neck",           "radius": 7.5,  "color": [200,80,200] },
+    { "name": "left_shoulder",  "radius": 7.0,  "color": [255,160,0] },
+    { "name": "right_shoulder", "radius": 7.0,  "color": [80,200,80] },
+    { "name": "left_elbow",     "radius": 6.0,  "color": [255,200,0] },
+    { "name": "right_elbow",    "radius": 6.0,  "color": [120,220,100] },
+    { "name": "left_wrist",     "radius": 5.0,  "color": [255,255,0] },
+    { "name": "right_wrist",    "radius": 5.0,  "color": [180,255,120] },
+    { "name": "waist",          "radius": 8.0,  "color": [200,100,255] },
+    { "name": "crotch",         "radius": 8.0,  "color": [0,200,220] },
+    { "name": "left_knee",      "radius": 6.5,  "color": [100,220,100] },
+    { "name": "right_knee",     "radius": 6.5,  "color": [60,140,255] },
+    { "name": "left_ankle",     "radius": 5.0,  "color": [80,200,140] },
+    { "name": "right_ankle",    "radius": 5.0,  "color": [80,160,240] }
+  ],
+
+  "joint_meta": {
+    "head":           { "parent": "neck",           "constraint": "head_constraint" },
+    "neck":           { "parent": "waist",          "constraint": "neck_constraint" },
+
+    "left_shoulder":  { "parent": "neck",           "constraint": "shoulder_cone" },
+    "right_shoulder": { "parent": "neck",           "constraint": "shoulder_cone" },
+
+    "left_elbow":     { "parent": "left_shoulder",  "constraint": "elbow_hinge" },
+    "right_elbow":    { "parent": "right_shoulder", "constraint": "elbow_hinge" },
+
+    "left_wrist":     { "parent": "left_elbow",     "constraint": "wrist_twist" },
+    "right_wrist":    { "parent": "right_elbow",    "constraint": "wrist_twist" },
+
+    "waist":          { "parent": null,             "constraint": "torso_cone" },
+    "crotch":         { "parent": "waist",          "constraint": "hip_cone" },
+
+    "left_knee":      { "parent": "crotch",         "constraint": "knee_hinge" },
+    "right_knee":     { "parent": "crotch",         "constraint": "knee_hinge" },
+
+    "left_ankle":     { "parent": "left_knee",      "constraint": "ankle_hinge" },
+    "right_ankle":    { "parent": "right_knee",     "constraint": "ankle_hinge" }
+  },
+
+  "constraints": {
+
+    "elbow_hinge": {
+      "type": "hinge",
+      "axis": [1,0,0],
+      "min": 0.0,
+      "max": 155.0,
+      "softness": 0.15,
+      "preferred": [0,0,1]
+    },
+
+    "knee_hinge": {
+      "type": "hinge",
+      "axis": [1,0,0],
+      "min": 0.0,
+      "max": 145.0,
+      "softness": 0.1,
+      "preferred": [0,0,1]
+    },
+
+    "ankle_hinge": {
+      "type": "hinge",
+      "axis": [1,0,0],
+      "min": -50.0,
+      "max": 30.0,
+      "softness": 0.15
+    },
+
+    "wrist_twist": {
+      "type": "twist",
+      "min": -70.0,
+      "max": 70.0,
+      "softness": 0.25
+    },
+
+    "shoulder_cone": {
+      "type": "cone",
+      "angle": 110.0,
+      "twist": 45.0,
+      "softness": 0.2
+    },
+
+    "hip_cone": {
+      "type": "cone",
+      "angle": 95.0,
+      "twist": 35.0,
+      "softness": 0.2
+    },
+
+    "torso_cone": {
+      "type": "cone",
+      "angle": 45.0,
+      "twist": 30.0,
+      "softness": 0.3
+    },
+
+    "neck_constraint": {
+      "type": "elliptical_cone",
+      "pitch_min": -40.0,
+      "pitch_max": 45.0,
+      "yaw_min": -70.0,
+      "yaw_max": 70.0,
+      "roll_min": -35.0,
+      "roll_max": 35.0,
+      "twist": 30.0,
+      "softness": 0.3,
+      "preferred_forward": [0,0,1]
+    },
+
+    "head_constraint": {
+      "type": "elliptical_cone",
+      "pitch_min": -35.0,
+      "pitch_max": 40.0,
+      "yaw_min": -80.0,
+      "yaw_max": 80.0,
+      "roll_min": -30.0,
+      "roll_max": 30.0,
+      "twist": 45.0,
+      "softness": 0.35,
+      "preferred_forward": [0,0,1]
+    }
+  }
+}

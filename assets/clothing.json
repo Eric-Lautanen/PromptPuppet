@@ -39,6 +39,7 @@
       "id": "top",
       "label": "Top",
       "options": [
+        { "value": "None", "display": "None" },
         { "value": "T-shirt", "display": "T-shirt" },
         { "value": "V-neck T-shirt", "display": "V-neck T-shirt" },
         { "value": "Scoop Neck T-shirt", "display": "Scoop Neck T-shirt" },
@@ -121,6 +122,7 @@
       "id": "bottom",
       "label": "Bottom",
       "options": [
+        { "value": "None", "display": "None" },
         { "value": "Jeans", "display": "Jeans" },
         { "value": "Skinny Jeans", "display": "Skinny Jeans" },
         { "value": "Slim Fit Jeans", "display": "Slim Fit Jeans" },
