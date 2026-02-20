@@ -347,7 +347,7 @@ impl Pose {
         Self::fabrik_solve_constrained(&mut chain, &lengths, target, target_idx, |c| {
             Self::constrain_elbow(c, &sk.constraints.elbow);
         });
-        self.left_shoulder.set_xyz(chain[0]); 
+        // chain[0] (shoulder) is the fixed root — do not write back to avoid drift
         self.left_elbow.set_xyz(chain[1]);
         self.left_wrist.set_xyz(chain[2]);
     }
@@ -358,7 +358,7 @@ impl Pose {
         Self::fabrik_solve_constrained(&mut chain, &lengths, target, target_idx, |c| {
             Self::constrain_elbow(c, &sk.constraints.elbow);
         });
-        self.right_shoulder.set_xyz(chain[0]);
+        // chain[0] (shoulder) is the fixed root — do not write back to avoid drift
         self.right_elbow.set_xyz(chain[1]);
         self.right_wrist.set_xyz(chain[2]);
     }
@@ -391,8 +391,10 @@ impl Pose {
             _ => target
         };
         
-        Self::fabrik_solve(&mut chain, &lengths, validated_target, target_idx);
+        // Spine has no angle constraints — pass a no-op
+        Self::fabrik_solve_constrained(&mut chain, &lengths, validated_target, target_idx, |_| {});
         
+        // chain[0] (neck) is the fixed root — do not write back
         self.waist.set_xyz(chain[1]);
         self.crotch.set_xyz(chain[2]);
     }
@@ -485,8 +487,9 @@ impl Pose {
         
         let target_rad = target_deg.to_radians();
         
-        let axis = ab.cross(cb).norm();
-        if axis.len() < 0.001 { return; }
+        let cross = ab.cross(cb);
+        if cross.len() < 0.001 { return; } // parallel vectors — no correction needed
+        let axis = cross.norm();
         
         let rotated = ab.rotate_around_axis(axis, target_rad);
         let len = c.sub(b).len();
@@ -568,45 +571,6 @@ impl Pose {
         
         let len = end.sub(joint).len();
         chain[2] = joint.add(new_dir.scale(len)).to_tuple();
-    }
-
-    /// FABRIK algorithm - 
-    /// target_idx indicates which joint is being "grabbed". 
-    /// If grabbing End-Effector (last joint): Standard IK.
-    /// If grabbing Mid-Joint: IK for Root->Mid, Drag/FK for Mid->End.
-    fn fabrik_solve(chain: &mut [(f32,f32,f32)], lengths: &[f32], target: (f32,f32,f32), target_idx: usize) {
-        // Case 1: Moving the Root (Drag whole chain)
-        if target_idx == 0 {
-            chain[0] = target;
-            for i in 0..chain.len()-1 {
-                chain[i+1] = Self::constrain_distance(chain[i], chain[i+1], lengths[i]);
-            }
-            return;
-        }
-
-        let root_fixed = chain[0]; // Remember where root was
-
-        // Case 2: Standard/Split FABRIK
-        // We iterate specifically to solve the IK portion [Root ... Target]
-        for _ in 0..5 {
-            // A. Forward Pass (Target -> Root)
-            chain[target_idx] = target;
-            for i in (1..=target_idx).rev() {
-                chain[i-1] = Self::constrain_distance(chain[i], chain[i-1], lengths[i-1]);
-            }
-
-            // B. Backward Pass (Root -> Target)
-            chain[0] = root_fixed; // Lock root
-            for i in 0..target_idx {
-                chain[i+1] = Self::constrain_distance(chain[i], chain[i+1], lengths[i]);
-            }
-        }
-
-        // Case 3: Drag the tail (Target -> End)
-        // If we moved a mid-joint (like elbow), the rest (wrist) just follows along
-        for i in target_idx..chain.len()-1 {
-            chain[i+1] = Self::constrain_distance(chain[i], chain[i+1], lengths[i]);
-        }
     }
 
     /// Helper to place point `to` at distance `len` from point `from` (3D)

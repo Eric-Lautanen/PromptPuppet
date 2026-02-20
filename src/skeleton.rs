@@ -21,9 +21,14 @@ pub struct AngleRange { pub min: f32, pub max: f32 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Constraints {
+    #[serde(default = "default_elbow")]
     pub elbow: AngleRange,
+    #[serde(default = "default_knee")]
     pub knee: AngleRange,
 }
+
+fn default_elbow() -> AngleRange { AngleRange { min: 0.0, max: 155.0 } }
+fn default_knee()  -> AngleRange { AngleRange { min: 0.0, max: 145.0 } }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Skeleton {

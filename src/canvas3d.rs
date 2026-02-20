@@ -71,26 +71,25 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     // View preset buttons
     let button_area = draw_view_buttons(ui, cam, resp.rect);
 
-    if resp.drag_started() {
-        if let Some(pos) = resp.interact_pointer_pos() {
-            // Don't start drag if clicking on buttons
+    // Capture joint on raw pointer press — before egui's drag threshold displaces the position.
+    // drag_started() fires too late: the pointer has already moved and we miss small joints.
+    let just_pressed = resp.hovered() && ui.input(|i| i.pointer.primary_pressed());
+    if just_pressed {
+        if let Some(pos) = ui.input(|i| i.pointer.interact_pos()) {
             if !button_area.contains(pos) {
-                *drag = find_nearest(pose,&sk,cam,resp.rect,pos);
+                *drag = find_nearest(pose, &sk, cam, resp.rect, pos);
+                // drag == None means empty space → rotation mode
             }
         }
     }
     if resp.dragged() {
         if let Some(pos) = resp.interact_pointer_pos() {
-            // Cancel joint drag if pointer enters button area
-            if button_area.contains(pos) {
-                *drag = None;
-            }
+            if button_area.contains(pos) { *drag = None; }
         }
-        // Only handle movement/rotation if we have valid pointer position
         if let Some(pos) = resp.interact_pointer_pos() {
             match drag.as_ref() {
                 Some(name) => move_joint(pose, name, &sk, cam, resp.rect, pos),
-                None => cam.yaw -= resp.drag_delta().x * 0.008,
+                None       => cam.yaw -= resp.drag_delta().x * 0.008,
             }
         }
     }
@@ -164,29 +163,46 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
         z += grid_step;
     }
 
-    struct Draw { a:Pos2, b:Pos2, z:f32, c:Color32, is_j:bool, r:f32 }
+    // Determine which joint is under cursor for hover highlight
+    let hovered_joint: Option<String> = if drag.is_some() {
+        drag.clone()
+    } else {
+        ui.input(|i| i.pointer.hover_pos())
+            .filter(|pos| resp.rect.contains(*pos) && !button_area.contains(*pos))
+            .and_then(|pos| find_nearest(pose, &sk, cam, resp.rect, pos))
+    };
+
+    struct Draw { a:Pos2, b:Pos2, z:f32, c:Color32, is_j:bool, r:f32, hovered:bool }
     let mut draws: Vec<Draw> = Vec::new();
 
     for bone in &sk.bones {
         if let (Some(ja),Some(jb)) = (get(pose,&bone.a),get(pose,&bone.b)) {
             if let (Some((pa,za)),Some((pb,zb))) = (cam.project(world(ja),resp.rect),cam.project(world(jb),resp.rect)) {
-                draws.push(Draw{a:pa,b:pb,z:(za+zb)*0.5,c:color32(bone.color),is_j:false,r:0.0});
+                draws.push(Draw{a:pa,b:pb,z:(za+zb)*0.5,c:color32(bone.color),is_j:false,r:0.0,hovered:false});
             }
         }
     }
     for jd in &sk.joints {
         if let Some(j) = get(pose,&jd.name) {
             if let Some((pos,z)) = cam.project(world(j),resp.rect) {
-                draws.push(Draw{a:pos,b:pos,z,c:color32(jd.color),is_j:true,r:jd.radius*1.5});
+                let is_hov = hovered_joint.as_deref() == Some(jd.name.as_str());
+                draws.push(Draw{a:pos,b:pos,z,c:color32(jd.color),is_j:true,r:jd.radius*1.5,hovered:is_hov});
             }
         }
     }
     draws.sort_by(|a,b| b.z.partial_cmp(&a.z).unwrap());
     for d in draws {
         if d.is_j {
+            if d.hovered {
+                // Glow ring — shows this joint is grabbable
+                p.circle_filled(d.a, d.r + 7.0, Color32::from_rgba_premultiplied(255,255,255,25));
+                p.circle_stroke(d.a, d.r + 5.0, Stroke::new(2.0, Color32::from_rgba_premultiplied(255,255,255,170)));
+            }
             p.circle_filled(d.a+Vec2::new(1.5,2.0), d.r+1.0, Color32::from_black_alpha(60));
             p.circle_filled(d.a, d.r, d.c);
-            p.circle_stroke(d.a, d.r, Stroke::new(1.5, Color32::from_rgba_premultiplied(255,255,255,80)));
+            let rim_w = if d.hovered { 2.5 } else { 1.5 };
+            let rim_a = if d.hovered { 220 } else { 80 };
+            p.circle_stroke(d.a, d.r, Stroke::new(rim_w, Color32::from_rgba_premultiplied(255,255,255,rim_a)));
             p.circle_filled(d.a+Vec2::new(-d.r*0.3,-d.r*0.35), d.r*0.35, Color32::from_rgba_premultiplied(255,255,255,160));
         } else {
             p.line_segment([d.a+Vec2::new(1.5,2.0),d.b+Vec2::new(1.5,2.0)], Stroke::new(5.0,Color32::from_black_alpha(60)));
@@ -276,17 +292,19 @@ fn draw_view_buttons(ui: &mut Ui, cam: &mut Camera3D, rect: Rect) -> Rect {
 }
 
 fn find_nearest(pose: &Pose, sk: &Skeleton, cam: &Camera3D, r: Rect, pos: Pos2) -> Option<String> {
+    // Hit radius scales with zoom so joints are equally clickable when zoomed out.
+    // Minimum 14px so tiny/distant joints are still reachable.
+    let zoom_scale = cam.scale.clamp(0.5, 3.0);
     let mut candidates: Vec<(String, f32, f32)> = sk.joints.iter()
         .filter_map(|jd| {
             let (sp, z) = cam.project(world(get(pose,&jd.name)?),r)?;
             let dist = sp.distance(pos);
-            // Hit radius larger than visual for easier clicking: visual is 1.5x, hit is 2.0x, min 10px
-            let hit_radius = (jd.radius * 2.0).max(10.0);
+            let hit_radius = (jd.radius * 1.5 * zoom_scale + 6.0).max(14.0);
             (dist < hit_radius).then_some((jd.name.clone(), dist, z))
         })
         .collect();
     
-    // Sort by depth first (closer joints have priority), then by 2D distance
+    // Closer joints (lower z) take priority; break ties by 2D distance
     candidates.sort_by(|a, b| {
         a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal)
             .then_with(|| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
