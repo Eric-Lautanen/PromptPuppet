@@ -3,7 +3,6 @@
 **A visual pose editor and semantic prompt generator for AI image & video creation**
 
 [![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/Eric-Lautanen/PromptPuppet/releases)
 
 Transform 2D stick-figure poses into rich, anatomically accurate text descriptions for **Stable Diffusion**, **Midjourney**, **Sora**, and other AI image/video generators.
