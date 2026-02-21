@@ -230,8 +230,8 @@ fn draw_view_buttons(ui: &mut Ui, cam: &mut Camera3D, rect: Rect) -> Rect {
     let views = [
         ("Front", 0.0, 0.0, Color32::from_rgb(100, 180, 255)),
         ("Back", std::f32::consts::PI, 0.0, Color32::from_rgb(0, 200, 220)),
-        ("Right", -std::f32::consts::FRAC_PI_2, 0.0, Color32::from_rgb(255, 160, 0)),
-        ("Left", std::f32::consts::FRAC_PI_2, 0.0, Color32::from_rgb(80, 200, 80)),
+        ("Left", -std::f32::consts::FRAC_PI_2, 0.0, Color32::from_rgb(255, 160, 0)),
+        ("Right", std::f32::consts::FRAC_PI_2, 0.0, Color32::from_rgb(80, 200, 80)),
     ];
     
     let total_width = (btn_size.x + spacing) * views.len() as f32 - spacing;
