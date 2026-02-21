@@ -5,8 +5,11 @@
 [![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/Eric-Lautanen/PromptPuppet/releases)
 
-Transform 3D stick-figure poses into rich, anatomically accurate text descriptions for **Stable Diffusion**, **Midjourney**, **Sora**, **Grok-Imagine** and other AI image/video generators.
 
+<div align="center">
+   Transform 3D stick-figure poses into rich, anatomically accurate text descriptions for **Stable Diffusion**, **Midjourney**, **Sora**, **Grok-Imagine** and other AI image/video generators.
+   <img src="assets/screenshot.png" alt="Velocut" width="80%">
+</div>
 ---
 
 ## ✨ Features
