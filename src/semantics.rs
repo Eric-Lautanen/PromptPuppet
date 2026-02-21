@@ -551,9 +551,23 @@ fn legs(p: &Pose, m: &BodyMetrics) -> Option<String> {
         ("left leg forward",  "right leg back",     "legs in stride"),
         ("left leg back",     "right leg forward",  "legs in stride"),
         ("left leg forward",  "right leg forward",  "both legs forward"),
-        ("left leg straight", "right leg straight", "legs together"),
     ]);
     if let Some(s) = sym { return Some(s); }
+
+    // ── "Legs together" only when feet are actually close ─────────────────────
+    // Collapsing two "straight" legs into "legs together" is only semantically
+    // correct when the ankles are genuinely close.  If the feet are spread the
+    // stance() description already covers that; emitting "legs together" here
+    // would directly contradict it (e.g. "feet very wide apart, legs together").
+    if left.as_deref() == Some("left leg straight") && right.as_deref() == Some("right leg straight") {
+        let spread_ratio = (p.left_ankle.x - p.right_ankle.x).abs() / m.shoulder_w;
+        if spread_ratio < 0.40 {
+            return Some("legs together".into());
+        }
+        // Feet are spread but legs are otherwise straight — stance() already
+        // describes the spread, so no additional leg phrase is needed.
+        return None;
+    }
 
     // ── Lunge: forward+bent lead leg, back trailing leg ──────────────────────
     // Uses starts_with so knee-dir suffixes (" knee out" etc.) don't block the match.
