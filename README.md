@@ -34,6 +34,7 @@ Transform 3D stick-figure poses into rich, anatomically accurate text descriptio
 - **Comprehensive Attributes** – Character traits, clothing, styles, environments, motion, and settings
 - **Conditional Logic** – Dynamic UI elements that adapt based on your selections
 - **Stable Output Order** – Prompt text is always generated in a consistent, deterministic order regardless of internal map iteration
+- **Live Updates** – Prompt rewrites as you drag — no button needed
 - **One-Click Export** – Copy complete prompts directly to your clipboard
 
 ### 🎬 **Video & Image Modes**
