@@ -20,13 +20,20 @@ use crate::pose::Pose;
 pub fn describe(pose: &Pose) -> String {
     let m = BodyMetrics::new(pose);
     let mut parts: Vec<String> = Vec::new();
-    parts.push(stance(pose, &m));
-    if let Some(s) = torso_lean(pose)     { parts.push(s); }
-    if let Some(s) = torso_twist(pose)    { parts.push(s); }
-    if let Some(s) = weight_shift(pose, &m) { parts.push(s); }
-    if let Some(s) = head_orient(pose)    { parts.push(s); }
-    if let Some(s) = arms(pose, &m)       { parts.push(s); }
-    if let Some(s) = legs(pose, &m)       { parts.push(s); }
+    let stance_str = stance(pose, &m);
+    parts.push(stance_str.clone());
+    let is_lying = stance_str.starts_with("lying");
+    // Torso lean/twist are meaningless when lying — and actively harmful: the
+    // body is horizontal so |neck.y − crotch.y| collapses to near-zero, causing
+    // the lean calculation to divide by ~1 px and produce huge spurious angles.
+    if !is_lying {
+        if let Some(s) = torso_lean(pose)   { parts.push(s); }
+        if let Some(s) = torso_twist(pose)  { parts.push(s); }
+    }
+    if let Some(s) = weight_shift(pose, &m, &stance_str) { parts.push(s); }
+    if let Some(s) = head_orient(pose)      { parts.push(s); }
+    if let Some(s) = arms(pose, &m)         { parts.push(s); }
+    if let Some(s) = legs(pose, &m, &stance_str) { parts.push(s); }
     parts.join(", ")
 }
 
@@ -217,9 +224,11 @@ fn torso_lean(p: &Pose) -> Option<String> {
     } else { None };
 
     // Shoulder tilt: one shoulder noticeably higher than the other.
+    // Threshold is proportional to torso height so it stays consistent at any body scale.
     let sh_dy = p.left_shoulder.y - p.right_shoulder.y; // negative = left shoulder higher
-    let sh_tilt = if sh_dy < -12.0 { Some("left shoulder raised") }
-                  else if sh_dy > 12.0 { Some("right shoulder raised") }
+    let sh_tilt_threshold = (p.crotch.y - p.neck.y).abs() * 0.11; // ~12 px at default scale=40
+    let sh_tilt = if sh_dy < -sh_tilt_threshold { Some("left shoulder raised") }
+                  else if sh_dy > sh_tilt_threshold { Some("right shoulder raised") }
                   else { None };
 
     let base = match (fwd, side) {
@@ -262,7 +271,10 @@ fn torso_twist(p: &Pose) -> Option<String> {
 // ─── Weight shift ─────────────────────────────────────────────────────────────
 // Contrapposto / weight on one foot. Only meaningful when both feet are grounded.
 // Hip (crotch) offset from the ankle midpoint tells us which leg bears the load.
-fn weight_shift(p: &Pose, m: &BodyMetrics) -> Option<String> {
+fn weight_shift(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
+    // Contrapposto is only meaningful when upright and both feet are planted.
+    // For seated, kneeling, squat etc. the hip offset is irrelevant or misleading.
+    if !stance_str.starts_with("standing") { return None; }
     let raise_threshold = m.body_h * 0.08;
     // Skip if either foot is raised — stance() already describes that case.
     if m.above_floor(p.left_ankle.y)  > raise_threshold { return None; }
@@ -522,12 +534,30 @@ fn describe_arm(sh: V3, el: V3, wr: V3, head: V3, side: &str, m: &BodyMetrics) -
 
 // ─── Legs ─────────────────────────────────────────────────────────────────────
 
-fn legs(p: &Pose, m: &BodyMetrics) -> Option<String> {
+fn legs(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
+    // ── Early exit: stance already owns the lower-body description ────────────
+    // These postures are fully characterised by stance(); appending per-leg detail
+    // would be redundant or directly contradict the primary description.
+    // "standing" and "standing, feet …" are the only cases where legs() adds value.
+    if stance_str.starts_with("lying")
+        || stance_str.starts_with("balancing")
+        || stance_str.starts_with("seated")
+        || stance_str.contains("squat")
+        || stance_str.contains("kneeling")
+        || stance_str.contains("knee raised")
+    {
+        return None;
+    }
+
     // ── Lateral spread: overrides per-leg descriptions ────────────────────────
-    let spread_x    = (p.left_ankle.x - p.right_ankle.x).abs();
-    let spread_knee = (p.left_knee.x  - p.right_knee.x).abs();
-    if spread_x > 160.0 || spread_knee > 140.0 {
-        let width = if spread_x > 240.0 { "very wide" } else { "wide" };
+    // Use the same ratio thresholds as foot_spread() so legs() and stance() can
+    // never disagree about how wide the feet are.
+    //   ratio < 0.90  → hip-width or closer: no override, let per-leg logic run
+    //   ratio 0.90–1.60 → "feet wide apart" territory → "wide"
+    //   ratio ≥ 1.60  → "feet very wide apart" territory → "very wide"
+    let spread_ratio = (p.left_ankle.x - p.right_ankle.x).abs() / m.shoulder_w;
+    if spread_ratio >= 0.90 {
+        let width = if spread_ratio >= 1.60 { "very wide" } else { "wide" };
         // Still describe stride within a wide stance
         let l = describe_leg(p.crotch.xyz(), p.left_knee.xyz(),  p.left_ankle.xyz(),  "left",  m);
         let r = describe_leg(p.crotch.xyz(), p.right_knee.xyz(), p.right_ankle.xyz(), "right", m);
@@ -682,11 +712,9 @@ fn describe_leg(hip: V3, kn: V3, an: V3, side: &str, m: &BodyMetrics) -> Option<
     }
 
     // ── Fully straight ────────────────────────────────────────────────────────
-    if bend > 155.0 {
-        return Some(format!("{side} leg straight{knee_dir}"));
-    }
-
-    None
+    // `else` rather than `if bend > 155.0` to close the float gap at exactly 155.0,
+    // which would otherwise fall silently through to None.
+    Some(format!("{side} leg straight{knee_dir}"))
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
