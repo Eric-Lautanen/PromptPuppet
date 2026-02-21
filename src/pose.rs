@@ -8,12 +8,9 @@ struct Vec3 { x: f32, y: f32, z: f32 }
 impl Vec3 {
     fn new(x: f32, y: f32, z: f32) -> Self { Self { x, y, z } }
     fn from_tuple(t: (f32, f32, f32)) -> Self { Self::new(t.0, t.1, t.2) }
-    fn to_tuple(self) -> (f32, f32, f32) { (self.x, self.y, self.z) }
 
     fn dot(self, o: Self) -> f32 { self.x*o.x + self.y*o.y + self.z*o.z }
     fn len(self) -> f32 { self.dot(self).sqrt() }
-    fn scale(self, s: f32) -> Self { Self::new(self.x*s, self.y*s, self.z*s) }
-    fn add(self, o: Self) -> Self { Self::new(self.x+o.x, self.y+o.y, self.z+o.z) }
     fn sub(self, o: Self) -> Self { Self::new(self.x-o.x, self.y-o.y, self.z-o.z) }
     fn distance(self, o: Self) -> f32 { self.sub(o).len() }
 }
@@ -431,40 +428,4 @@ impl Pose {
         (from.0+dx*s, from.1+dy*s, from.2+dz*s)
     }
 
-    // ── Debug / accessors ────────────────────────────────────────────────────
-
-    pub fn debug_all_joints(&self, label: &str) {
-        println!("\n═══ {} ═══", label);
-        for (name, j) in [
-            ("head", &self.head), ("neck", &self.neck),
-            ("L_shoulder", &self.left_shoulder), ("R_shoulder", &self.right_shoulder),
-            ("L_elbow", &self.left_elbow), ("R_elbow", &self.right_elbow),
-            ("L_wrist", &self.left_wrist), ("R_wrist", &self.right_wrist),
-            ("waist", &self.waist), ("crotch", &self.crotch),
-            ("L_knee", &self.left_knee), ("R_knee", &self.right_knee),
-            ("L_ankle", &self.left_ankle), ("R_ankle", &self.right_ankle),
-        ] {
-            println!("  {:12} ({:7.1}, {:7.1}, {:7.1})", name, j.x, j.y, j.z);
-        }
-    }
-
-    pub fn joint_mut(&mut self, name: &str) -> Option<&mut Joint> {
-        Some(match name {
-            "head"           => &mut self.head,
-            "neck"           => &mut self.neck,
-            "left_shoulder"  => &mut self.left_shoulder,
-            "right_shoulder" => &mut self.right_shoulder,
-            "left_elbow"     => &mut self.left_elbow,
-            "right_elbow"    => &mut self.right_elbow,
-            "left_wrist"     => &mut self.left_wrist,
-            "right_wrist"    => &mut self.right_wrist,
-            "waist"          => &mut self.waist,
-            "crotch"         => &mut self.crotch,
-            "left_knee"      => &mut self.left_knee,
-            "right_knee"     => &mut self.right_knee,
-            "left_ankle"     => &mut self.left_ankle,
-            "right_ankle"    => &mut self.right_ankle,
-            _                => return None,
-        })
-    }
 }

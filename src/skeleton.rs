@@ -16,9 +16,11 @@ pub struct Segments {
     pub shoulder_width: f32,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct AngleRange { pub min: f32, pub max: f32 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct Constraints {
     #[serde(default = "default_elbow")]
@@ -40,6 +42,7 @@ pub struct Skeleton {
     pub segments:  Segments,
     pub bones:     Vec<BoneDef>,
     pub joints:    Vec<JointDef>,
+    #[allow(dead_code)]
     pub constraints: Constraints,
 }
 

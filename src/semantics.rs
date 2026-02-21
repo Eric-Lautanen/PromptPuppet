@@ -44,11 +44,7 @@ struct BodyMetrics {
     /// Key landmark Y positions (screen coords — smaller = higher on screen).
     neck_y:     f32,
     shoulder_y: f32,   // avg of both shoulders
-    waist_y:    f32,
     hip_y:      f32,   // crotch joint
-    knee_y:     f32,   // avg of both knees
-    /// Average Z of the torso spine — forward/back reference for arms.
-    torso_z:    f32,
 }
 
 impl BodyMetrics {
@@ -58,10 +54,8 @@ impl BodyMetrics {
         let shoulder_y = (p.left_shoulder.y + p.right_shoulder.y) / 2.0;
         let torso_h   = (p.crotch.y - p.neck.y).abs().max(1.0);
         let shoulder_w = (p.left_shoulder.x - p.right_shoulder.x).abs().max(1.0);
-        let knee_y    = (p.left_knee.y + p.right_knee.y) / 2.0;
-        let torso_z   = (p.neck.z + p.waist.z + p.crotch.z) / 3.0;
         Self { floor_y, body_h, torso_h, shoulder_w, neck_y: p.neck.y,
-               shoulder_y, waist_y: p.waist.y, hip_y: p.crotch.y, knee_y, torso_z }
+               shoulder_y, hip_y: p.crotch.y }
     }
 
     /// Pixels above the floor. Positive = elevated; 0 = on the ground.

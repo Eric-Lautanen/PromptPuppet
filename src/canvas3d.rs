@@ -15,16 +15,6 @@ impl Camera3D {
         [self.focus[0]+self.radius*cp*sy, self.focus[1]+self.radius*sp, self.focus[2]+self.radius*cp*cy]
     }
 
-    /// Clamp pitch so the camera eye never goes below `floor_y` (+ a margin).
-    /// Overhead limit is fixed at -π/2 + a tiny gap so the view never flips.
-    pub fn clamp_pitch(&mut self, floor_y: f32) {
-        // Floor limit: solve for max pitch where eye[1] == floor_y - margin
-        let margin = 20.0;
-        let max_sin = ((floor_y - margin - self.focus[1]) / self.radius).clamp(-1.0, 0.95);
-        let max_pitch = max_sin.asin();          // positive = camera below focus
-        let min_pitch = -std::f32::consts::FRAC_PI_2 + 0.05; // nearly overhead
-        self.pitch = self.pitch.clamp(min_pitch, max_pitch);
-    }
     fn project(&self, p: [f32;3], r: Rect) -> Option<(Pos2,f32)> {
         let eye = self.eye();
         let ((sy,cy),(sp,cp)) = (self.yaw.sin_cos(), self.pitch.sin_cos());
