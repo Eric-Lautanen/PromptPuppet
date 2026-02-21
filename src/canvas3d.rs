@@ -99,7 +99,7 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
         if let Some(pos) = resp.interact_pointer_pos() {
             if button_area.contains(pos) { *drag = None; }
         }
-        if let Some(pos) = resp.interact_pointer_pos() {
+        if let Some(_pos) = resp.interact_pointer_pos() {
             match drag.as_ref() {
                 Some(name) => move_joint(pose, name, &sk, cam, resp.drag_delta()),
                 None => cam.yaw -= resp.drag_delta().x * 0.008,
@@ -107,7 +107,6 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
         }
     }
     if resp.drag_stopped() {
-        // Constraints are applied continuously per FABRIK iteration — no on-release snap needed.
         *drag = None;
     }
     
@@ -317,5 +316,5 @@ fn move_joint(pose: &mut Pose, name: &str, sk: &Skeleton, cam: &Camera3D, delta:
     let cur = world(j_ref);
     let target = (cur[0]+wx, cur[1]+wy, cur[2]+wz);
 
-    pose.move_joint_constrained(name, target, sk);
+    pose.move_joint(name, target, sk);
 }
