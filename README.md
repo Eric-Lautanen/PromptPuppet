@@ -9,6 +9,7 @@
 
    Transform 3D stick-figure poses into rich, anatomically accurate text descriptions for **Stable Diffusion**, **Midjourney**, **Sora**, **Grok-Imagine** and other AI image/video generators.
    <img src="assets/screenshot.png" alt="Velocut" width="80%">
+   
    **Download** the latest release from [Releases](https://github.com/Eric-Lautanen/PromptPuppet/releases)
 </div>
 ---
