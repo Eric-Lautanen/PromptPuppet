@@ -4,7 +4,7 @@ use crate::app::{PresetItem, PresetMetadata, PromptPuppetApp};
 use crate::json_loader::{OptionCategory, UiConfig, PanelConfig};
 
 pub fn render_ui_from_config(app: &mut PromptPuppetApp, ui: &mut Ui, config: &UiConfig) -> bool {
-    config.panels.clone().iter().fold(false, |ch, panel| {
+    config.panels.iter().fold(false, |ch, panel| {
         ui.add_space(2.0);
         let changed = egui::Frame::NONE.inner_margin(egui::Margin::symmetric(4, 2)).show(ui, |ui| {
             CollapsingHeader::new(egui::RichText::new(&panel.title).strong())

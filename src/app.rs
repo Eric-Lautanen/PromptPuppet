@@ -105,6 +105,12 @@ pub struct PromptPuppetApp {
     /// True once the user has manually dragged a joint. Cleared when a preset
     /// or reset restores a known pose — at which point the JSON prompt returns.
     pub pose_is_manual:   bool,
+
+    // ── 🕺 Easter egg: Ctrl+Shift+D → Dance Mode ─────────────────────────────
+    pub dance_mode:       bool,
+    pub dance_time:       f32,
+    /// Snapshot of the pose taken when dance mode starts so we can restore it.
+    pub pre_dance_pose:   Option<Pose>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -121,7 +127,14 @@ fn load_saves() -> Vec<SavedState> {
 }
 
 fn write_saves(saves: &[SavedState]) {
-    if let Ok(j) = serde_json::to_string_pretty(saves) { let _ = std::fs::write(saves_file(), j); }
+    let Ok(json) = serde_json::to_string_pretty(saves) else { return };
+    let dest = saves_file();
+    // Write to a sibling temp file first, then atomically rename into place.
+    // A crash mid-write therefore never corrupts the real saves file.
+    let tmp = dest.with_extension("tmp");
+    if std::fs::write(&tmp, &json).is_ok() {
+        let _ = std::fs::rename(&tmp, &dest);
+    }
 }
 
 fn timestamp() -> String {
@@ -253,6 +266,7 @@ impl Default for PromptPuppetApp {
             save_dialog: None, load_dialog: false, saves: load_saves(),
             camera_3d: Camera3D::default(),
             pose_is_manual: false,
+            dance_mode: false, dance_time: 0.0, pre_dance_pose: None,
         }
     }
 }
@@ -278,7 +292,15 @@ impl PromptPuppetApp {
             &self.ui_config, self.pose_is_manual).generate();
     }
     fn do_save(&mut self, name: String) {
-        self.saves.push(SavedState { name: name.clone(), timestamp: timestamp(), state: self.state.clone() });
+        // If dancing, save the pre-dance pose — not a frozen mid-animation frame.
+        let save_state = if self.dance_mode {
+            let mut s = self.state.clone();
+            if let Some(ref pre) = self.pre_dance_pose { s.pose = pre.clone(); }
+            s
+        } else {
+            self.state.clone()
+        };
+        self.saves.push(SavedState { name: name.clone(), timestamp: timestamp(), state: save_state });
         write_saves(&self.saves);
         self.set_status(&format!("✅ Saved \"{name}\""), 3.0);
     }
@@ -539,7 +561,8 @@ impl eframe::App for PromptPuppetApp {
             let prev_dragging = self.dragging_joint_3d.clone();
             let status_alpha = if self.status_timer > 0.5 { 1.0 } else { self.status_timer / 0.5 };
             let status = (self.status_timer > 0.0).then(|| (self.status_message.as_str(), status_alpha));
-            draw_3d_canvas(ui, &mut self.state.pose, &mut self.camera_3d, sz, &mut self.dragging_joint_3d, status);
+            let disco_time = self.dance_mode.then_some(self.dance_time);
+            draw_3d_canvas(ui, &mut self.state.pose, &mut self.camera_3d, sz, &mut self.dragging_joint_3d, status, disco_time);
             // A joint just started being dragged → switch to manual semantic prompt
             if self.dragging_joint_3d.is_some() && prev_dragging.is_none() {
                 self.pose_is_manual = true;
@@ -548,6 +571,48 @@ impl eframe::App for PromptPuppetApp {
 
         handle_window_resize(ctx);
 
+        // ── 🕺 Dance Mode: Ctrl+Shift+D ───────────────────────────────────────
+        let toggle_dance = ctx.input(|i| {
+            i.modifiers.ctrl && i.modifiers.shift && i.key_pressed(Key::D)
+        });
+        if toggle_dance {
+            if self.dance_mode {
+                // Stop dancing — restore the pose we had before.
+                self.dance_mode = false;
+                self.dance_time = 0.0;
+                if let Some(saved) = self.pre_dance_pose.take() {
+                    self.state.pose = saved;
+                }
+                self.set_status("🛑 Dance mode off", 2.0);
+            } else {
+                // Start dancing — snapshot current pose so we can restore it later.
+                self.pre_dance_pose = Some(self.state.pose.clone());
+                self.dance_mode = true;
+                self.dance_time = 0.0;
+                self.set_status("🕺 Dance mode! (Ctrl+Shift+D to stop)", 3.0);
+            }
+        }
+        if self.dance_mode {
+            let dt = ctx.input(|i| i.stable_dt).min(0.05); // cap to avoid jumps
+            self.dance_time += dt;
+            crate::ftlz::apply_dance(&mut self.state.pose, &self.default_pose, self.dance_time);
+            self.update_prompt();
+            // Sync the hash so the bottom-of-frame hash check doesn't fire a
+            // second update_prompt() — pose changed intentionally, already rebuilt.
+            {
+                let mut h = DefaultHasher::new();
+                format!("{:?}", self.state).hash(&mut h);
+                self.state_hash = h.finish();
+            }
+            ctx.request_repaint();
+        }
+
+        // Change detection: rebuild the prompt only when AppState actually changes.
+        // format!("{:?}") is used because AppState contains HashMaps and serde_json::Value
+        // which don't implement Hash, so a derive isn't possible without a third-party crate.
+        // Cost is acceptable here: this branch is skipped entirely during dance mode (hash is
+        // kept in sync inline above), and on normal frames it only allocates when the user
+        // actually interacts with a control.
         let h = { let mut h = DefaultHasher::new(); format!("{:?}", self.state).hash(&mut h); h.finish() };
         if h != self.state_hash { self.state_hash = h; self.update_prompt(); }
 

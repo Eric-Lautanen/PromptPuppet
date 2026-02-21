@@ -53,10 +53,30 @@ fn get<'a>(pose: &'a Pose, name: &str) -> Option<&'a Joint> {
     })
 }
 
-pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Vec2, drag: &mut Option<String>, status: Option<(&str, f32)>) -> Response {
+pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Vec2, drag: &mut Option<String>, status: Option<(&str, f32)>, disco_time: Option<f32>) -> Response {
     let sk = skeleton::get();
     let (resp,p) = ui.allocate_painter(size, Sense::click_and_drag());
-    p.rect_filled(resp.rect, 0.0, if ui.visuals().dark_mode { Color32::from_gray(18) } else { Color32::from_gray(80) });
+
+    // ── Disco helpers ─────────────────────────────────────────────────────────
+    // hsv_to_rgb: h/s/v all in [0,1]
+    let hsv = |h: f32, s: f32, v: f32| -> Color32 {
+        let h6 = h.rem_euclid(1.0) * 6.0;
+        let i  = h6 as u32;
+        let f  = h6 - i as f32;
+        let (pp, q, t) = (v*(1.-s), v*(1.-s*f), v*(1.-s*(1.-f)));
+        let (r,g,b) = match i { 0=>(v,t,pp), 1=>(q,v,pp), 2=>(pp,v,t), 3=>(pp,q,v), 4=>(t,pp,v), _=>(v,pp,q) };
+        Color32::from_rgb((r*255.) as u8, (g*255.) as u8, (b*255.) as u8)
+    };
+
+    // Background: dark base with a slowly pulsing hue tint in disco mode
+    let bg = if let Some(dt) = disco_time {
+        let pulse = (dt * 0.4).sin() * 0.5 + 0.5;           // 0..1 slow breathe
+        let hue   = (dt * 0.12).rem_euclid(1.0);              // full hue rotation ~8s
+        let dark  = hsv(hue, 0.6, 0.07 + pulse * 0.04);      // very dark, hint of colour
+        dark
+    } else if ui.visuals().dark_mode { Color32::from_gray(18) } else { Color32::from_gray(80) };
+
+    p.rect_filled(resp.rect, 0.0, bg);
 
     // Calculate current figure bounds
     let all = [&pose.head,&pose.neck,&pose.left_shoulder,&pose.right_shoulder,
@@ -117,32 +137,73 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
 
     // Draw XZ ground grid at floor level (feet_y already computed above)
     let grid_y = feet_y + 10.0;
-    let grid_color = if ui.visuals().dark_mode { Color32::from_gray(60) } else { Color32::from_gray(100) };
-    let grid_size = 600.0;  // wider so grid stays visible at steep pitch angles
+    let grid_size = 600.0;
     let grid_step = 60.0;
-    
-    // Grid centered at figure's XZ position
     let center_x = cam.focus[0];
     let center_z = cam.focus[2];
-    
+
+    // ── Disco spotlights: coloured circles rotating on the floor ─────────────
+    if let Some(dt) = disco_time {
+        let spot_radius = 110.0_f32;
+        for i in 0..3_u32 {
+            let angle = dt * 1.1 + (i as f32) * std::f32::consts::TAU / 3.0;
+            let sx = center_x + angle.sin() * 160.0;
+            let sz = center_z + angle.cos() * 160.0;
+            let hue  = (dt * 0.18 + i as f32 / 3.0).rem_euclid(1.0);
+            // Project centre + four rim points, average to get an on-screen ellipse.
+            if let Some((sp, _)) = cam.project([sx, grid_y, sz], resp.rect) {
+                // Quick: project a rim point to estimate screen radius
+                let rim = cam.project([sx + spot_radius * 0.5, grid_y, sz], resp.rect);
+                let sr = rim.map(|(rp,_)| (rp - sp).length()).unwrap_or(40.0) * 1.4;
+                let col = hsv(hue, 0.9, 0.9);
+                let c = Color32::from_rgba_premultiplied(col.r(), col.g(), col.b(), 28);
+                p.circle_filled(sp, sr, c);
+                // Bright centre
+                let cc = Color32::from_rgba_premultiplied(col.r(), col.g(), col.b(), 55);
+                p.circle_filled(sp, sr * 0.35, cc);
+            }
+        }
+    }
+
+    // ── Grid lines (rainbow in disco mode, plain otherwise) ──────────────────
+    let plain_grid = if ui.visuals().dark_mode { Color32::from_gray(60) } else { Color32::from_gray(100) };
+
+    let mut line_idx = 0_u32;
     let mut x = center_x - grid_size;
     while x <= center_x + grid_size {
+        let gc = if let Some(dt) = disco_time {
+            let hue = ((x - center_x) / (grid_size * 2.0) + dt * 0.08).rem_euclid(1.0);
+            let beat_flash = ((dt * 140.0 / 60.0 * std::f32::consts::TAU).sin() * 0.5 + 0.5) * 0.35;
+            let v = 0.30 + beat_flash;
+            let c = hsv(hue, 0.85, v);
+            Color32::from_rgba_premultiplied(c.r(), c.g(), c.b(), 180)
+        } else { plain_grid };
         let p1 = cam.project([x, grid_y, center_z - grid_size], resp.rect);
         let p2 = cam.project([x, grid_y, center_z + grid_size], resp.rect);
         if let (Some((p1, _)), Some((p2, _))) = (p1, p2) {
-            p.line_segment([p1, p2], Stroke::new(1.5, grid_color));
+            p.line_segment([p1, p2], Stroke::new(1.5, gc));
         }
         x += grid_step;
+        line_idx += 1;
     }
     let mut z = center_z - grid_size;
     while z <= center_z + grid_size {
+        let gc = if let Some(dt) = disco_time {
+            let hue = ((z - center_z) / (grid_size * 2.0) + dt * 0.08 + 0.5).rem_euclid(1.0);
+            let beat_flash = ((dt * 140.0 / 60.0 * std::f32::consts::TAU).sin() * 0.5 + 0.5) * 0.35;
+            let v = 0.30 + beat_flash;
+            let c = hsv(hue, 0.85, v);
+            Color32::from_rgba_premultiplied(c.r(), c.g(), c.b(), 180)
+        } else { plain_grid };
         let p1 = cam.project([center_x - grid_size, grid_y, z], resp.rect);
         let p2 = cam.project([center_x + grid_size, grid_y, z], resp.rect);
         if let (Some((p1, _)), Some((p2, _))) = (p1, p2) {
-            p.line_segment([p1, p2], Stroke::new(1.5, grid_color));
+            p.line_segment([p1, p2], Stroke::new(1.5, gc));
         }
         z += grid_step;
+        line_idx += 1;
     }
+    let _ = line_idx; // suppress unused warning
 
     // Determine which joint is under cursor for hover highlight
     let hovered_joint: Option<String> = if drag.is_some() {
@@ -159,7 +220,13 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     for bone in &sk.bones {
         if let (Some(ja),Some(jb)) = (get(pose,&bone.a),get(pose,&bone.b)) {
             if let (Some((pa,za)),Some((pb,zb))) = (cam.project(world(ja),resp.rect),cam.project(world(jb),resp.rect)) {
-                draws.push(Draw{a:pa,b:pb,z:(za+zb)*0.5,c:color32(bone.color),is_j:false,r:0.0,hovered:false});
+                let c = if let Some(dt) = disco_time {
+                    // Each bone gets its own hue offset so the skeleton is fully rainbow
+                    let bone_hash = bone.a.len() as f32 * 0.07 + bone.b.len() as f32 * 0.13;
+                    let hue = (dt * 0.22 + bone_hash).rem_euclid(1.0);
+                    hsv(hue, 1.0, 1.0)
+                } else { color32(bone.color) };
+                draws.push(Draw{a:pa,b:pb,z:(za+zb)*0.5,c,is_j:false,r:0.0,hovered:false});
             }
         }
     }
@@ -167,7 +234,12 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
         if let Some(j) = get(pose,&jd.name) {
             if let Some((pos,z)) = cam.project(world(j),resp.rect) {
                 let is_hov = hovered_joint.as_deref() == Some(jd.name.as_str());
-                draws.push(Draw{a:pos,b:pos,z,c:color32(jd.color),is_j:true,r:jd.radius*1.5,hovered:is_hov});
+                let c = if let Some(dt) = disco_time {
+                    let joint_hash = jd.name.len() as f32 * 0.11;
+                    let hue = (dt * 0.3 + joint_hash).rem_euclid(1.0);
+                    hsv(hue, 0.8, 1.0)
+                } else { color32(jd.color) };
+                draws.push(Draw{a:pos,b:pos,z,c,is_j:true,r:jd.radius*1.5,hovered:is_hov});
             }
         }
     }
@@ -175,19 +247,51 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     for d in draws {
         if d.is_j {
             if d.hovered {
-                // Glow ring — shows this joint is grabbable
                 p.circle_filled(d.a, d.r + 7.0, Color32::from_rgba_premultiplied(255,255,255,25));
                 p.circle_stroke(d.a, d.r + 5.0, Stroke::new(2.0, Color32::from_rgba_premultiplied(255,255,255,170)));
             }
-            p.circle_filled(d.a+Vec2::new(1.5,2.0), d.r+1.0, Color32::from_black_alpha(60));
-            p.circle_filled(d.a, d.r, d.c);
+            // In disco mode joints pulse in size with the beat
+            let r = if let Some(dt) = disco_time {
+                let pulse = (dt * 140.0 / 60.0 * std::f32::consts::TAU * 2.0).sin() * 0.22 + 1.0;
+                d.r * pulse
+            } else { d.r };
+            p.circle_filled(d.a+Vec2::new(1.5,2.0), r+1.0, Color32::from_black_alpha(60));
+            p.circle_filled(d.a, r, d.c);
             let rim_w = if d.hovered { 2.5 } else { 1.5 };
             let rim_a = if d.hovered { 220 } else { 80 };
-            p.circle_stroke(d.a, d.r, Stroke::new(rim_w, Color32::from_rgba_premultiplied(255,255,255,rim_a)));
-            p.circle_filled(d.a+Vec2::new(-d.r*0.3,-d.r*0.35), d.r*0.35, Color32::from_rgba_premultiplied(255,255,255,160));
+            p.circle_stroke(d.a, r, Stroke::new(rim_w, Color32::from_rgba_premultiplied(255,255,255,rim_a)));
+            p.circle_filled(d.a+Vec2::new(-r*0.3,-r*0.35), r*0.35, Color32::from_rgba_premultiplied(255,255,255,160));
         } else {
-            p.line_segment([d.a+Vec2::new(1.5,2.0),d.b+Vec2::new(1.5,2.0)], Stroke::new(5.0,Color32::from_black_alpha(60)));
-            p.line_segment([d.a,d.b], Stroke::new(4.0,d.c));
+            let stroke_w = if let Some(dt) = disco_time {
+                // Bones throb on the beat
+                let pulse = (dt * 140.0 / 60.0 * std::f32::consts::TAU).sin() * 1.5 + 4.0;
+                pulse
+            } else { 4.0 };
+            p.line_segment([d.a+Vec2::new(1.5,2.0),d.b+Vec2::new(1.5,2.0)], Stroke::new(stroke_w+1.0,Color32::from_black_alpha(60)));
+            p.line_segment([d.a,d.b], Stroke::new(stroke_w, d.c));
+        }
+    }
+
+    // ── Disco sparkles: tiny flashing stars scattered around the figure ───────
+    if let Some(dt) = disco_time {
+        // 18 sparkles; each gets a new random-ish position every ~0.1s (floor of t*10)
+        let tick = (dt * 10.0).floor() as u32;
+        for i in 0_u32..18 {
+            // Cheap deterministic hash → pseudo-random position + hue
+            let seed = tick.wrapping_mul(2654435761).wrapping_add(i.wrapping_mul(2246822519));
+            let nx = ((seed & 0xFFFF) as f32 / 65535.0) - 0.5;   // -0.5..0.5
+            let ny = ((seed >> 16) as f32 / 65535.0) - 0.5;
+            let hue  = ((seed.wrapping_mul(1013904223) >> 8) as f32 / 16777215.0).rem_euclid(1.0);
+            let size = 2.5 + (seed & 7) as f32 * 0.6;
+
+            let sx = resp.rect.center().x + nx * resp.rect.width()  * 0.85;
+            let sy = resp.rect.center().y + ny * resp.rect.height() * 0.7;
+            let sc = hsv(hue, 0.9, 1.0);
+            p.circle_filled(Pos2::new(sx, sy), size, sc);
+            // Little 4-point star cross
+            let arm = size * 1.8;
+            p.line_segment([Pos2::new(sx-arm,sy), Pos2::new(sx+arm,sy)], Stroke::new(1.0, sc));
+            p.line_segment([Pos2::new(sx,sy-arm), Pos2::new(sx,sy+arm)], Stroke::new(1.0, sc));
         }
     }
     p.text(resp.rect.min+Vec2::new(8.,6.), egui::Align2::LEFT_TOP,

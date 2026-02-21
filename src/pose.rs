@@ -27,6 +27,15 @@ pub struct Joint {
     pub angle: f32,
 }
 
+impl std::hash::Hash for Joint {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.x.to_bits().hash(state);
+        self.y.to_bits().hash(state);
+        self.z.to_bits().hash(state);
+        self.angle.to_bits().hash(state);
+    }
+}
+
 impl Joint {
     pub fn new_3d(x: f32, y: f32, z: f32) -> Self { Self { x, y, z, angle: 0.0 } }
 
@@ -42,6 +51,14 @@ impl Joint {
 pub struct FingerSet {
     pub thumb: f32, pub index: f32, pub middle: f32,
     pub ring: f32,  pub pinky: f32, pub spread: f32,
+}
+
+impl std::hash::Hash for FingerSet {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.thumb.to_bits().hash(state);  self.index.to_bits().hash(state);
+        self.middle.to_bits().hash(state); self.ring.to_bits().hash(state);
+        self.pinky.to_bits().hash(state);  self.spread.to_bits().hash(state);
+    }
 }
 impl Default for FingerSet {
     fn default() -> Self { Self { thumb: 0.0, index: 0.0, middle: 0.0, ring: 0.0, pinky: 0.0, spread: 20.0 } }
@@ -59,6 +76,24 @@ pub struct Pose {
     pub left_knee: Joint,  pub right_knee: Joint,
     pub left_ankle: Joint, pub right_ankle: Joint,
     pub head_tilt: f32, pub head_nod: f32, pub head_yaw: f32,
+}
+
+impl std::hash::Hash for Pose {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.head.hash(state);           self.neck.hash(state);
+        self.left_shoulder.hash(state);  self.right_shoulder.hash(state);
+        self.left_elbow.hash(state);     self.right_elbow.hash(state);
+        self.left_wrist.hash(state);     self.right_wrist.hash(state);
+        self.left_fingers.hash(state);   self.right_fingers.hash(state);
+        self.waist.hash(state);          self.crotch.hash(state);
+        self.torso_lean.to_bits().hash(state);
+        self.torso_sway.to_bits().hash(state);
+        self.left_knee.hash(state);      self.right_knee.hash(state);
+        self.left_ankle.hash(state);     self.right_ankle.hash(state);
+        self.head_tilt.to_bits().hash(state);
+        self.head_nod.to_bits().hash(state);
+        self.head_yaw.to_bits().hash(state);
+    }
 }
 
 impl Pose {

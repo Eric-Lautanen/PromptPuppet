@@ -478,7 +478,7 @@ fn describe_arm(sh: V3, el: V3, wr: V3, head: V3, side: &str, m: &BodyMetrics) -
     // Wrist has drifted inward and is close to the body centre in all axes.
     // This is the "arm tucked against chest" case that otherwise falls to None.
     {
-        let torso_centre_x = (sh.0 - sh.0 * sign * 0.5); // rough body centreline
+        let torso_centre_x = sh.0 - sh.0 * sign * 0.5; // rough body centreline
         let wrist_in       = out < -0.10;
         let wrist_fwd_near = fwd.abs() < 0.50;
         let wrist_mid_y    = (wr.1 - m.shoulder_y).abs() < m.torso_h * 0.55;
