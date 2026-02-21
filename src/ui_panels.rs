@@ -303,6 +303,7 @@ fn handle_selection(app: &mut PromptPuppetApp, key: &str, id: &str,
 fn update_pose(app: &mut PromptPuppetApp, id: &str, items: &[PresetItem]) {
     if let Some(pose) = items.iter().find(|i| i.id == id).and_then(|i| i.pose_data.clone()) {
         app.state.pose = pose;
+        app.pose_is_manual = false;
     }
 }
 

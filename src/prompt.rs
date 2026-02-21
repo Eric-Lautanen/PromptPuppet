@@ -11,6 +11,7 @@ pub struct PromptGenerator<'a> {
     preset_metadata: &'a HashMap<String, crate::app::PresetMetadata>,
     ui_config:       &'a UiConfig,
     video_mode:      bool,
+    pose_is_manual:  bool,
 }
 
 impl<'a> PromptGenerator<'a> {
@@ -21,8 +22,10 @@ impl<'a> PromptGenerator<'a> {
         presets: &'a HashMap<String, Vec<PresetItem>>,
         preset_metadata: &'a HashMap<String, crate::app::PresetMetadata>,
         ui_config: &'a UiConfig,
+        pose_is_manual: bool,
     ) -> Self {
-        Self { state, libraries, settings_meta, presets, preset_metadata, ui_config, video_mode: state.video_mode }
+        Self { state, libraries, settings_meta, presets, preset_metadata, ui_config,
+               video_mode: state.video_mode, pose_is_manual }
     }
 
     fn skip(v: &str) -> bool { v.is_empty() || v == "None" }
@@ -41,6 +44,13 @@ impl<'a> PromptGenerator<'a> {
     }
 
     fn selected_prompts(&self, key: &str) -> Vec<String> {
+        // For the pose library specifically: if the user has manually moved a
+        // joint, replace the preset JSON prompt with a live semantic description.
+        if key == "poses" && self.pose_is_manual {
+            let desc = crate::semantics::describe(&self.state.pose);
+            return if desc.is_empty() { vec![] } else { vec![desc] };
+        }
+
         let Some(sel)   = self.state.selections.get(key) else { return vec![] };
         let Some(items) = self.presets.get(key)          else { return vec![] };
         sel.selected.iter()

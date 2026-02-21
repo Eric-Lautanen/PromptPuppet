@@ -102,6 +102,9 @@ pub struct PromptPuppetApp {
     pub load_dialog:      bool,
     pub saves:            Vec<SavedState>,
     pub camera_3d:        Camera3D,
+    /// True once the user has manually dragged a joint. Cleared when a preset
+    /// or reset restores a known pose — at which point the JSON prompt returns.
+    pub pose_is_manual:   bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -249,6 +252,7 @@ impl Default for PromptPuppetApp {
             status_timer: 0.0, ui_config, state_hash: 0, dark_mode,
             save_dialog: None, load_dialog: false, saves: load_saves(),
             camera_3d: Camera3D::default(),
+            pose_is_manual: false,
         }
     }
 }
@@ -262,6 +266,7 @@ impl PromptPuppetApp {
     }
     pub fn reset_pose_to_default(&mut self) {
         self.state.pose = self.default_pose.clone();
+        self.pose_is_manual = false;
         self.set_status("✅ Reset to default pose", 2.0);
     }
     pub fn set_status(&mut self, msg: &str, dur: f32) {
@@ -269,7 +274,8 @@ impl PromptPuppetApp {
     }
     pub fn update_prompt(&mut self) {
         self.generated_prompt = PromptGenerator::new(&self.state, &self.libraries,
-            &self.settings_meta, &self.preset_items, &self.preset_metadata, &self.ui_config).generate();
+            &self.settings_meta, &self.preset_items, &self.preset_metadata,
+            &self.ui_config, self.pose_is_manual).generate();
     }
     fn do_save(&mut self, name: String) {
         self.saves.push(SavedState { name: name.clone(), timestamp: timestamp(), state: self.state.clone() });
@@ -280,6 +286,7 @@ impl PromptPuppetApp {
         if let Some(saved) = self.saves.get(idx) {
             let name = saved.name.clone();
             self.state = saved.state.clone();
+            self.pose_is_manual = false;
             self.update_prompt();
             self.set_status(&format!("✅ Loaded \"{name}\""), 3.0);
         }
@@ -529,7 +536,12 @@ impl eframe::App for PromptPuppetApp {
 
         CentralPanel::default().show(ctx, |ui| {
             let sz = ui.available_size();
+            let prev_dragging = self.dragging_joint_3d.clone();
             draw_3d_canvas(ui, &mut self.state.pose, &mut self.camera_3d, sz, &mut self.dragging_joint_3d);
+            // A joint just started being dragged → switch to manual semantic prompt
+            if self.dragging_joint_3d.is_some() && prev_dragging.is_none() {
+                self.pose_is_manual = true;
+            }
         });
 
         handle_window_resize(ctx);

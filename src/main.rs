@@ -5,6 +5,7 @@ mod app;
 mod pose;
 mod prompt;
 mod skeleton;
+mod semantics;
 mod ui_panels;
 mod json_loader;
 mod canvas3d;
