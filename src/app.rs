@@ -537,7 +537,9 @@ impl eframe::App for PromptPuppetApp {
         CentralPanel::default().show(ctx, |ui| {
             let sz = ui.available_size();
             let prev_dragging = self.dragging_joint_3d.clone();
-            draw_3d_canvas(ui, &mut self.state.pose, &mut self.camera_3d, sz, &mut self.dragging_joint_3d);
+            let status_alpha = if self.status_timer > 0.5 { 1.0 } else { self.status_timer / 0.5 };
+            let status = (self.status_timer > 0.0).then(|| (self.status_message.as_str(), status_alpha));
+            draw_3d_canvas(ui, &mut self.state.pose, &mut self.camera_3d, sz, &mut self.dragging_joint_3d, status);
             // A joint just started being dragged → switch to manual semantic prompt
             if self.dragging_joint_3d.is_some() && prev_dragging.is_none() {
                 self.pose_is_manual = true;

@@ -376,7 +376,7 @@ impl Pose {
     fn fix_dist(from: (f32,f32,f32), to: (f32,f32,f32), len: f32) -> (f32,f32,f32) {
         let (dx, dy, dz) = (to.0-from.0, to.1-from.1, to.2-from.2);
         let d = (dx*dx + dy*dy + dz*dz).sqrt();
-        if d < 0.001 { return to; }
+        if d < 0.001 { return (from.0, from.1 + len, from.2); }
         let s = len / d;
         (from.0+dx*s, from.1+dy*s, from.2+dz*s)
     }

@@ -53,7 +53,7 @@ fn get<'a>(pose: &'a Pose, name: &str) -> Option<&'a Joint> {
     })
 }
 
-pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Vec2, drag: &mut Option<String>) -> Response {
+pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Vec2, drag: &mut Option<String>, status: Option<(&str, f32)>) -> Response {
     let sk = skeleton::get();
     let (resp,p) = ui.allocate_painter(size, Sense::click_and_drag());
     p.rect_filled(resp.rect, 0.0, if ui.visuals().dark_mode { Color32::from_gray(18) } else { Color32::from_gray(80) });
@@ -193,6 +193,32 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     p.text(resp.rect.min+Vec2::new(8.,6.), egui::Align2::LEFT_TOP,
         if drag.is_some() {"Dragging joint..."} else {"Drag joint: move   Drag empty: rotate   Scroll: zoom"},
         egui::FontId::proportional(11.0), Color32::from_rgba_premultiplied(200,200,200,120));
+
+    // ── Status toast (upper-right corner) ────────────────────────────────────
+    if let Some((msg, alpha)) = status {
+        if alpha > 0.0 {
+            let a = (alpha * 255.0).round() as u8;
+            let pad = Vec2::new(12.0, 8.0);
+            let font = egui::FontId::proportional(13.0);
+            let galley = ui.painter().layout_no_wrap(
+                msg.to_string(), font.clone(), Color32::WHITE);
+            let text_size = galley.size();
+            let bg_size   = text_size + pad * 2.0;
+            let bg_pos    = egui::Pos2::new(
+                resp.rect.max.x - bg_size.x - 10.0,
+                resp.rect.min.y + 10.0,
+            );
+            let bg_rect = egui::Rect::from_min_size(bg_pos, bg_size);
+            p.rect_filled(bg_rect, 6.0,
+                Color32::from_rgba_premultiplied(20, 20, 20, (a as f32 * 0.82) as u8));
+            p.rect_stroke(bg_rect, 6.0,
+                egui::Stroke::new(1.0, Color32::from_rgba_premultiplied(255, 255, 255, (a as f32 * 0.18) as u8)),
+                egui::StrokeKind::Outside);
+            p.text(bg_pos + pad, egui::Align2::LEFT_TOP,
+                msg, font, Color32::from_rgba_premultiplied(255, 255, 255, a));
+        }
+    }
+
     resp
 }
 

@@ -201,9 +201,28 @@ impl GenericItem {
             pose.right_shoulder.set_xyz((sh_mid.0-ls_dir.0*s, sh_mid.1-ls_dir.1*s, sh_mid.2-ls_dir.2*s));
         }
         
-        // NOTE: neck is intentionally NOT re-snapped to shoulder midpoint here.
-        // The JSON neck point is the authored position and must be preserved.
-        
+        // CRITICAL: In the Pose model, `neck` IS the shoulder midpoint (the collar
+        // joint). Both move_shoulder() and ragdoll_from_neck() enforce this invariant
+        // at runtime, so the loaded pose must match. JSON files often author "neck"
+        // as the anatomical mid-neck (above the shoulders), which detaches the
+        // shoulder bar from the spine on load.
+        //
+        // Fix: snap neck to the true midpoint of the (now-constrained) shoulders,
+        // then translate head by the same delta so the neck-segment bone stays intact.
+        {
+            let ls_c = pose.left_shoulder.xyz();
+            let rs_c = pose.right_shoulder.xyz();
+            let true_neck = (
+                (ls_c.0 + rs_c.0) / 2.0,
+                (ls_c.1 + rs_c.1) / 2.0,
+                (ls_c.2 + rs_c.2) / 2.0,
+            );
+            let old_neck = pose.neck.xyz();
+            let nd = (true_neck.0 - old_neck.0, true_neck.1 - old_neck.1, true_neck.2 - old_neck.2);
+            pose.neck.set_xyz(true_neck);
+            pose.head.translate(nd.0, nd.1, nd.2);
+        }
+
         // Fix left arm
         let lsh = pose.left_shoulder.xyz();
         let lel = pose.left_elbow.xyz();

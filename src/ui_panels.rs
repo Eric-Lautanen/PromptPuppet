@@ -135,7 +135,12 @@ fn render_simple_dropdown(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> 
 
     if changed {
         app.state.selections.entry(key.to_string()).or_default().selected = nxt.clone();
-        if let Some(id) = nxt.first() { update_pose(app, id, &items); }
+        if let Some(id) = nxt.first() {
+            update_pose(app, id, &items);
+            if let Some(item) = items.iter().find(|i| &i.id == id) {
+                app.set_status(&format!("✅ {}", item.name), 2.0);
+            }
+        }
     }
     if app.preset_metadata.get(key).and_then(|m| m.allow_custom).unwrap_or(false) {
         if let Some(id) = app.state.selections.get(key).and_then(|s| s.selected.first()) {
@@ -221,6 +226,7 @@ fn render_preset_selector(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> 
         });
         if let Some(id) = to_remove {
             app.state.selections.get_mut(key).map(|s| s.selected.retain(|i| i != &id));
+            app.set_status("✖ Removed", 1.5);
             changed = true;
         }
     }
@@ -288,8 +294,17 @@ fn handle_selection(app: &mut PromptPuppetApp, key: &str, id: &str,
     let allow_multi = meta.map_or(false, |m| m.allow_multi(app.state.video_mode));
     let sel = app.state.selections.entry(key.to_string()).or_default();
     if allow_multi {
-        if sel.selected.contains(&id.to_string()) { sel.selected.retain(|i| i != id); }
-        else                                       { sel.selected.push(id.to_string()); }
+        if sel.selected.contains(&id.to_string()) {
+            sel.selected.retain(|i| i != id);
+            if let Some(item) = items.iter().find(|i| i.id == id) {
+                app.set_status(&format!("✖ {}", item.name), 1.5);
+            }
+        } else {
+            sel.selected.push(id.to_string());
+            if let Some(item) = items.iter().find(|i| i.id == id) {
+                app.set_status(&format!("✅ {}", item.name), 2.0);
+            }
+        }
     } else {
         sel.selected = vec![id.to_string()];
         update_pose(app, id, items);

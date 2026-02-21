@@ -75,7 +75,12 @@ impl<'a> PromptGenerator<'a> {
                     const ORDER: &[&str] = &["Basic Info","Physical Features","Facial Features","Body Details"];
                     let mut all = groups.remove(&None).unwrap_or_default();
                     for g in ORDER { if let Some(v) = groups.remove(&Some(g.to_string())) { all.extend(v); } }
-                    for (_,v) in groups { all.extend(v); }
+                    // Sort remaining groups by name for stable output order.
+                    // HashMap iteration is non-deterministic; without this the prompt
+                    // reshuffles every time update_prompt() is called (e.g. on joint drag).
+                    let mut remaining: Vec<_> = groups.into_iter().collect();
+                    remaining.sort_by_key(|(k, _)| k.clone());
+                    for (_, v) in remaining { all.extend(v); }
                     Self::emit(&mut out, &all);
                 }
                 "controls" => {
@@ -89,9 +94,13 @@ impl<'a> PromptGenerator<'a> {
                         }).collect();
                         Self::emit(&mut out, &pairs);
                     } else {
-                        for (_,v) in &data.values {
-                            if let Some(d) = Self::val_str(v) {
-                                if !Self::skip(&d) { out.push_str(&d); out.push('\n'); }
+                        // Iterate by lib.settings (Vec) order, not data.values (HashMap),
+                        // so the output is stable and won't reshuffle on each update_prompt().
+                        for s in &lib.settings {
+                            if let Some(v) = data.values.get(&s.id) {
+                                if let Some(d) = Self::val_str(v) {
+                                    if !Self::skip(&d) { out.push_str(&d); out.push('\n'); }
+                                }
                             }
                         }
                     }
