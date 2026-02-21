@@ -156,7 +156,12 @@ impl GenericItem {
             crate::pose::Joint::new_3d(kx, ky + sk.seg("shin"), kz)
         };
         let (ls, rs) = (pt("left_shoulder"), pt("right_shoulder"));
-        let smid = crate::pose::Joint::new_3d((ls.0+rs.0)/2.0, (ls.1+rs.1)/2.0, (ls.2+rs.2)/2.0);
+        // Use the JSON neck point directly; only fall back to shoulder midpoint if neck is absent.
+        let smid = if sf.points.contains_key("neck") {
+            j("neck")
+        } else {
+            crate::pose::Joint::new_3d((ls.0+rs.0)/2.0, (ls.1+rs.1)/2.0, (ls.2+rs.2)/2.0)
+        };
 
         let mut pose = crate::pose::Pose {
             head:           j("head"),
@@ -196,10 +201,8 @@ impl GenericItem {
             pose.right_shoulder.set_xyz((sh_mid.0-ls_dir.0*s, sh_mid.1-ls_dir.1*s, sh_mid.2-ls_dir.2*s));
         }
         
-        // Update neck to shoulder midpoint
-        let ls = pose.left_shoulder.xyz();
-        let rs = pose.right_shoulder.xyz();
-        pose.neck.set_xyz(((ls.0+rs.0)/2.0, (ls.1+rs.1)/2.0, (ls.2+rs.2)/2.0));
+        // NOTE: neck is intentionally NOT re-snapped to shoulder midpoint here.
+        // The JSON neck point is the authored position and must be preserved.
         
         // Fix left arm
         let lsh = pose.left_shoulder.xyz();
@@ -240,6 +243,36 @@ impl GenericItem {
         let rank = pose.right_ankle.xyz();
         pose.right_ankle.set_xyz(constrain_dist(rkn, rank, sk.seg("shin")));
         
+        // ── Derive head orientation from the neck→head direction vector ──────────────
+        // Coordinate space: X = right, Y = up, Z = into screen (away from viewer).
+        //
+        //   head_nod  > 0  chin down  (head tips toward camera / looking forward-down)
+        //             < 0  chin up    (head tips away  / looking up)
+        //   head_yaw  > 0  turned right (character's own right)
+        //             < 0  turned left
+        //   head_tilt = 0  roll — cannot be inferred from a 2-point vector alone
+        {
+            let (nx, ny, nz) = pose.neck.xyz();
+            let (hx, hy, hz) = pose.head.xyz();
+            let (dx, dy, dz) = (hx - nx, hy - ny, hz - nz);
+            let len = (dx*dx + dy*dy + dz*dz).sqrt();
+            if len > 0.001 {
+                // Nod: angle of the neck→head vector in the YZ plane relative to straight up.
+                // Negative Z (toward viewer) → chin drops forward → positive nod.
+                pose.head_nod = (-dz / len).asin().to_degrees();
+
+                // Yaw: lateral deviation of the neck→head vector in the XZ plane.
+                // Positive X (character's right) → positive yaw.
+                // We use the full len so poses with simultaneous nod+yaw decode correctly.
+                pose.head_yaw = (dx / len).asin().to_degrees();
+
+                // Tilt (roll around the neck→head axis) cannot be resolved from
+                // two points — leave it neutral. A future pass could read a
+                // "head_right" hint from the JSON if you add one.
+                pose.head_tilt = 0.0;
+            }
+        }
+
         Some(pose)
     }
 }
