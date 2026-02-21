@@ -14,6 +14,17 @@ impl Camera3D {
         let ((sy,cy),(sp,cp)) = (self.yaw.sin_cos(), self.pitch.sin_cos());
         [self.focus[0]+self.radius*cp*sy, self.focus[1]+self.radius*sp, self.focus[2]+self.radius*cp*cy]
     }
+
+    /// Clamp pitch so the camera eye never goes below `floor_y` (+ a margin).
+    /// Overhead limit is fixed at -π/2 + a tiny gap so the view never flips.
+    pub fn clamp_pitch(&mut self, floor_y: f32) {
+        // Floor limit: solve for max pitch where eye[1] == floor_y - margin
+        let margin = 20.0;
+        let max_sin = ((floor_y - margin - self.focus[1]) / self.radius).clamp(-1.0, 0.95);
+        let max_pitch = max_sin.asin();          // positive = camera below focus
+        let min_pitch = -std::f32::consts::FRAC_PI_2 + 0.05; // nearly overhead
+        self.pitch = self.pitch.clamp(min_pitch, max_pitch);
+    }
     fn project(&self, p: [f32;3], r: Rect) -> Option<(Pos2,f32)> {
         let eye = self.eye();
         let ((sy,cy),(sp,cp)) = (self.yaw.sin_cos(), self.pitch.sin_cos());
@@ -47,7 +58,7 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     let (resp,p) = ui.allocate_painter(size, Sense::click_and_drag());
     p.rect_filled(resp.rect, 0.0, if ui.visuals().dark_mode { Color32::from_gray(18) } else { Color32::from_gray(80) });
 
-    // Calculate current figure center
+    // Calculate current figure bounds
     let all = [&pose.head,&pose.neck,&pose.left_shoulder,&pose.right_shoulder,
                &pose.left_elbow,&pose.right_elbow,&pose.left_wrist,&pose.right_wrist,
                &pose.waist,&pose.crotch,&pose.left_knee,&pose.right_knee,
@@ -56,17 +67,19 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     let (min_y,max_y) = all.iter().fold((f32::MAX,f32::MIN),|(lo,hi),j|(lo.min(j.y),hi.max(j.y)));
     let (min_z,max_z) = all.iter().fold((f32::MAX,f32::MIN),|(lo,hi),j|(lo.min(j.z),hi.max(j.z)));
     let target_focus = [(min_x+max_x)/2.0, (min_y+max_y)/2.0, (min_z+max_z)/2.0];
-    
-    // First frame: snap to center immediately. After: smoothly interpolate
+    let feet_y = pose.left_ankle.y.max(pose.right_ankle.y);
+
+    // X/Z: snap to figure center during rotation so it stays the horizontal orbit pivot.
+    // Y: creep very slowly (0.03/frame) — effectively frozen during any rotation gesture.
+    //    This is the three.js OrbitControls insight: a stable vertical pivot makes the
+    //    grid appear as genuinely static world geometry rather than swimming with pitch.
     let is_first_frame = cam.focus[0].abs() < 0.001 && cam.focus[1].abs() < 0.001 && cam.focus[2].abs() < 0.001;
-    if is_first_frame {
-        cam.focus = target_focus;
-    } else {
-        let lerp_speed = if drag.is_some() { 0.15 } else { 0.25 };
-        cam.focus[0] += (target_focus[0] - cam.focus[0]) * lerp_speed;
-        cam.focus[1] += (target_focus[1] - cam.focus[1]) * lerp_speed;
-        cam.focus[2] += (target_focus[2] - cam.focus[2]) * lerp_speed;
-    }
+    let is_rotating = resp.dragged() && drag.is_none();
+    let lerp_xz = if is_first_frame || is_rotating { 1.0 } else if drag.is_some() { 0.15 } else { 0.25 };
+    let lerp_y  = if is_first_frame { 1.0 } else { 0.03 }; // near-frozen during rotation
+    cam.focus[0] += (target_focus[0] - cam.focus[0]) * lerp_xz;
+    cam.focus[1] += (target_focus[1] - cam.focus[1]) * lerp_y;
+    cam.focus[2] += (target_focus[2] - cam.focus[2]) * lerp_xz;
 
     // View preset buttons
     let button_area = draw_view_buttons(ui, cam, resp.rect);
@@ -88,43 +101,13 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
         }
         if let Some(pos) = resp.interact_pointer_pos() {
             match drag.as_ref() {
-                Some(name) => move_joint(pose, name, &sk, cam, resp.rect, pos),
-                None       => cam.yaw -= resp.drag_delta().x * 0.008,
+                Some(name) => move_joint(pose, name, &sk, cam, resp.drag_delta()),
+                None => cam.yaw -= resp.drag_delta().x * 0.008,
             }
         }
     }
-    if resp.drag_stopped() { 
-        if let Some(joint_name) = drag.as_ref() {
-            // Apply anatomical constraints only to the chain that was moved
-            match joint_name.as_str() {
-                "left_elbow" | "left_wrist" => {
-                    let mut chain = [pose.left_shoulder.xyz(), pose.left_elbow.xyz(), pose.left_wrist.xyz()];
-                    Pose::constrain_elbow(&mut chain, &sk.constraints.elbow);
-                    pose.left_elbow.set_xyz(chain[1]);
-                    pose.left_wrist.set_xyz(chain[2]);
-                }
-                "right_elbow" | "right_wrist" => {
-                    let mut chain = [pose.right_shoulder.xyz(), pose.right_elbow.xyz(), pose.right_wrist.xyz()];
-                    Pose::constrain_elbow(&mut chain, &sk.constraints.elbow);
-                    pose.right_elbow.set_xyz(chain[1]);
-                    pose.right_wrist.set_xyz(chain[2]);
-                }
-                "left_knee" | "left_ankle" => {
-                    let mut chain = [pose.crotch.xyz(), pose.left_knee.xyz(), pose.left_ankle.xyz()];
-                    Pose::constrain_knee(&mut chain, &sk.constraints.knee);
-                    pose.left_knee.set_xyz(chain[1]);
-                    pose.left_ankle.set_xyz(chain[2]);
-                }
-                "right_knee" | "right_ankle" => {
-                    let mut chain = [pose.crotch.xyz(), pose.right_knee.xyz(), pose.right_ankle.xyz()];
-                    Pose::constrain_knee(&mut chain, &sk.constraints.knee);
-                    pose.right_knee.set_xyz(chain[1]);
-                    pose.right_ankle.set_xyz(chain[2]);
-                }
-                _ => {}
-            }
-        }
-        
+    if resp.drag_stopped() {
+        // Constraints are applied continuously per FABRIK iteration — no on-release snap needed.
         *drag = None;
     }
     
@@ -133,12 +116,11 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
         if s != 0.0 { cam.scale *= 1.0 + s*0.001; cam.scale = cam.scale.clamp(0.1, 10.0); }
     }
 
-    // Draw XZ ground grid below feet, centered on figure
-    let feet_y = pose.left_ankle.y.max(pose.right_ankle.y);
+    // Draw XZ ground grid at floor level (feet_y already computed above)
     let grid_y = feet_y + 10.0;
     let grid_color = if ui.visuals().dark_mode { Color32::from_gray(60) } else { Color32::from_gray(100) };
-    let grid_size = 300.0;
-    let grid_step = 30.0;
+    let grid_size = 600.0;  // wider so grid stays visible at steep pitch angles
+    let grid_step = 60.0;
     
     // Grid centered at figure's XZ position
     let center_x = cam.focus[0];
@@ -313,32 +295,27 @@ fn find_nearest(pose: &Pose, sk: &Skeleton, cam: &Camera3D, r: Rect, pos: Pos2) 
     candidates.first().map(|(name, _, _)| name.clone())
 }
 
-fn move_joint(pose: &mut Pose, name: &str, sk: &Skeleton, cam: &Camera3D, r: Rect, pos: Pos2) {
+fn move_joint(pose: &mut Pose, name: &str, sk: &Skeleton, cam: &Camera3D, delta: Vec2) {
     let Some(j_ref) = get(pose, name) else { return };
-    
-    // Get camera basis vectors
-    let eye = cam.eye();
-    let ((sy,cy),(sp,cp)) = (cam.yaw.sin_cos(),cam.pitch.sin_cos());
-    let (fwd,right,up) = ([-cp*sy,-sp,-cp*cy],[cy,0.,-sy],[sp*sy,cp,sp*cy]);
-    
-    // Find the depth of the joint along the forward axis
-    let orig = world(j_ref);
-    let to_joint = [orig[0]-eye[0], orig[1]-eye[1], orig[2]-eye[2]];
-    let depth = to_joint[0]*fwd[0] + to_joint[1]*fwd[1] + to_joint[2]*fwd[2];
-    
-    // Clamp depth to reasonable range to prevent joints from going behind camera or too far
-    let depth = depth.clamp(10.0, 10000.0);
-    
-    // Convert screen position to world ray direction
-    let screen_offset = ((pos.x - r.center().x) / cam.scale, (pos.y - r.center().y) / cam.scale);
-    
-    // Calculate world position: start from eye, go forward by depth, then add screen offset in right/up directions
-    let target = (
-        eye[0] + fwd[0]*depth + right[0]*screen_offset.0 + up[0]*screen_offset.1,
-        eye[1] + fwd[1]*depth + right[1]*screen_offset.0 + up[1]*screen_offset.1,
-        eye[2] + fwd[2]*depth + right[2]*screen_offset.0 + up[2]*screen_offset.1,
-    );
 
-    // Use centralized constraint-aware movement
+    // Delta-based movement: convert the tiny per-frame screen delta into a world nudge.
+    // This is fundamentally smoother than absolute-position tracking because:
+    //   - drag_delta() is 1-5px per frame — noise is tiny and integrates smoothly
+    //   - no depth-estimation error (absolute approach must guess joint Z each frame)
+    //   - FABRIK receives a position very close to the current one, so it barely has
+    //     to move and converges in 1-2 iterations instead of fighting a noisy target
+    let ((sy,cy),(sp,cp)) = (cam.yaw.sin_cos(), cam.pitch.sin_cos());
+    let right = [cy,    0.,  -sy];
+    let up    = [sp*sy, cp, sp*cy];
+    let scale = cam.scale;
+
+    // Map screen pixels → world units using camera right/up axes
+    let wx = right[0]*delta.x/scale + up[0]*delta.y/scale;
+    let wy = right[1]*delta.x/scale + up[1]*delta.y/scale;
+    let wz = right[2]*delta.x/scale + up[2]*delta.y/scale;
+
+    let cur = world(j_ref);
+    let target = (cur[0]+wx, cur[1]+wy, cur[2]+wz);
+
     pose.move_joint_constrained(name, target, sk);
 }

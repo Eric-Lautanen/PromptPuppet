@@ -344,8 +344,9 @@ impl Pose {
     fn fabrik_left_arm(&mut self, target: (f32, f32, f32), sk: &crate::skeleton::Skeleton, target_idx: usize) {
         let mut chain = [self.left_shoulder.xyz(), self.left_elbow.xyz(), self.left_wrist.xyz()];
         let lengths = [sk.seg("arm"), sk.seg("forearm")];
+        let pole_l = Vec3::new(-0.3, 0.0, 1.0).norm(); // faces forward, slight outward bias
         Self::fabrik_solve_constrained(&mut chain, &lengths, target, target_idx, |c| {
-            Self::constrain_elbow(c, &sk.constraints.elbow);
+            Self::constrain_elbow(c, &sk.constraints.elbow, pole_l);
         });
         // chain[0] (shoulder) is the fixed root — do not write back to avoid drift
         self.left_elbow.set_xyz(chain[1]);
@@ -355,8 +356,9 @@ impl Pose {
     fn fabrik_right_arm(&mut self, target: (f32, f32, f32), sk: &crate::skeleton::Skeleton, target_idx: usize) {
         let mut chain = [self.right_shoulder.xyz(), self.right_elbow.xyz(), self.right_wrist.xyz()];
         let lengths = [sk.seg("arm"), sk.seg("forearm")];
+        let pole_r = Vec3::new( 0.3, 0.0, 1.0).norm(); // mirrored
         Self::fabrik_solve_constrained(&mut chain, &lengths, target, target_idx, |c| {
-            Self::constrain_elbow(c, &sk.constraints.elbow);
+            Self::constrain_elbow(c, &sk.constraints.elbow, pole_r);
         });
         // chain[0] (shoulder) is the fixed root — do not write back to avoid drift
         self.right_elbow.set_xyz(chain[1]);
@@ -402,8 +404,9 @@ impl Pose {
     fn fabrik_left_leg(&mut self, target: (f32, f32, f32), sk: &crate::skeleton::Skeleton, target_idx: usize) {
         let mut chain = [self.crotch.xyz(), self.left_knee.xyz(), self.left_ankle.xyz()];
         let lengths = [sk.seg("thigh"), sk.seg("shin")];
+        let pole_fwd = Vec3::new(0.0, 0.0, 1.0);
         Self::fabrik_solve_constrained(&mut chain, &lengths, target, target_idx, |c| {
-            Self::constrain_knee(c, &sk.constraints.knee);
+            Self::constrain_knee(c, &sk.constraints.knee, pole_fwd);
         });
         self.crotch.set_xyz(chain[0]);
         self.left_knee.set_xyz(chain[1]);
@@ -413,8 +416,9 @@ impl Pose {
     fn fabrik_right_leg(&mut self, target: (f32, f32, f32), sk: &crate::skeleton::Skeleton, target_idx: usize) {
         let mut chain = [self.crotch.xyz(), self.right_knee.xyz(), self.right_ankle.xyz()];
         let lengths = [sk.seg("thigh"), sk.seg("shin")];
+        let pole_fwd = Vec3::new(0.0, 0.0, 1.0);
         Self::fabrik_solve_constrained(&mut chain, &lengths, target, target_idx, |c| {
-            Self::constrain_knee(c, &sk.constraints.knee);
+            Self::constrain_knee(c, &sk.constraints.knee, pole_fwd);
         });
         self.crotch.set_xyz(chain[0]);
         self.right_knee.set_xyz(chain[1]);
@@ -464,46 +468,87 @@ impl Pose {
         constrain(chain);
     }
 
-    /// Generic 3D hinge constraint - works for elbows and knees
-    fn constrain_hinge(chain: &mut [(f32,f32,f32)], constraint: &ConstraintDef) {
-        if chain.len() != 3 { return; }
-        
-        let a = Vec3::from_tuple(chain[0]);
-        let b = Vec3::from_tuple(chain[1]);
-        let c = Vec3::from_tuple(chain[2]);
-        
-        let ab = a.sub(b).norm();
-        let cb = c.sub(b).norm();
-        
-        let dot = ab.dot(cb).clamp(-1.0, 1.0);
-        let angle_rad = dot.acos();
-        let angle_deg = angle_rad.to_degrees();
-        
-        // Soft clamp - gradually resists at limits instead of snapping
+    /// Hinge constraint with plane enforcement and hyperextension blocking.
+    ///
+    /// `pole` is the world-space direction the joint "faces" — the valid flexion side.
+    /// For knees: (0,0,1) forward. For elbows: outward + slightly forward.
+    ///
+    /// Three steps per call (runs inside FABRIK loop, so 6× per drag frame):
+    ///   1. Plane steering  — remove 40% of the out-of-plane component each iteration
+    ///   2. Hyperextension  — hard-block: if bc opposes pole, zero that component out
+    ///   3. Angle clamp     — soft-clamp to [min_deg=30, max_deg=180]
+    ///                        180° = straight, 30° = max anatomical flexion
+    fn constrain_hinge(chain: &mut [(f32,f32,f32)], constraint: &ConstraintDef, pole: Vec3) {
+        if chain.len() < 3 { return; }
+
+        let a = Vec3::from_tuple(chain[0]); // root  (shoulder / hip)
+        let b = Vec3::from_tuple(chain[1]); // joint (elbow / knee)
+        let c = Vec3::from_tuple(chain[2]); // end   (wrist / ankle)
+
+        let lower_len = b.distance(c);
+        if lower_len < 0.001 { return; }
+
+        let ab     = a.sub(b).norm(); // joint→root direction
+        let bc_cur = c.sub(b).norm(); // joint→end  direction
+
+        // ── Step 1: Plane steering ───────────────────────────────────────────
+        // Remove 40% of the component that takes bc out of the ab+pole plane.
+        // Converges to ~88% in-plane over 6 FABRIK iterations — firm, not snappy.
+        let bc_steered = {
+            let plane_n = ab.cross(pole);
+            if plane_n.len() > 0.01 {
+                let n   = plane_n.norm();
+                let out = n.scale(n.dot(bc_cur) * 0.40);
+                let s   = bc_cur.sub(out);
+                if s.len() > 0.01 { s.norm() } else { bc_cur }
+            } else {
+                bc_cur
+            }
+        };
+
+        // ── Step 2: Block hyperextension ────────────────────────────────────
+        // `pole` is the flexion direction. A negative dot product means bc is
+        // pointing away from the flexion side — that's anatomically impossible.
+        // Remove the negative component: projects back to "just straight" at worst.
+        //
+        // Concrete example (knee, pole = +Z forward):
+        //   bc·pole > 0: shin forward  = valid flexion        → pass through
+        //   bc·pole < 0: shin backward = hyperextension       → zero it out
+        let flex_dot = bc_steered.dot(pole);
+        let bc_blocked = if flex_dot < 0.0 {
+            // Remove the hyperextension component entirely
+            let projected = bc_steered.sub(pole.scale(flex_dot));
+            if projected.len() > 0.01 { projected.norm() } else { ab.scale(-1.0) }
+        } else {
+            bc_steered
+        };
+
+        // ── Step 3: Angle clamp ──────────────────────────────────────────────
+        let dot        = ab.dot(bc_blocked).clamp(-1.0, 1.0);
+        let angle_deg  = dot.acos().to_degrees();
         let target_deg = Vec3::soft_clamp(angle_deg, constraint.min_deg, constraint.max_deg, constraint.softness);
-        
-        // Only apply correction if we actually changed the angle
-        if (target_deg - angle_deg).abs() < 0.01 { return; }
-        
         let target_rad = target_deg.to_radians();
-        
-        let cross = ab.cross(cb);
-        if cross.len() < 0.001 { return; } // parallel vectors — no correction needed
-        let axis = cross.norm();
-        
-        let rotated = ab.rotate_around_axis(axis, target_rad);
-        let len = c.sub(b).len();
-        chain[2] = b.add(rotated.scale(len)).to_tuple();
+
+        let cross  = ab.cross(bc_blocked);
+        let new_bc = if cross.len() < 0.001 {
+            let fb = ab.cross(pole);
+            if fb.len() > 0.01 { ab.rotate_around_axis(fb.norm(), target_rad) } else { bc_blocked }
+        } else if (target_deg - angle_deg).abs() > 0.01 {
+            ab.rotate_around_axis(cross.norm(), target_rad)
+        } else {
+            bc_blocked
+        };
+
+        chain[2] = b.add(new_bc.scale(lower_len)).to_tuple();
     }
 
-    pub fn constrain_elbow(chain: &mut [(f32,f32,f32)], limits: &crate::skeleton::AngleRange) {
-        let constraint = ConstraintDef::hinge(limits.min, limits.max);
-        Self::constrain_hinge(chain, &constraint);
+
+    pub fn constrain_elbow(chain: &mut [(f32,f32,f32)], limits: &crate::skeleton::AngleRange, pole: Vec3) {
+        Self::constrain_hinge(chain, &ConstraintDef::hinge(limits.min, limits.max), pole);
     }
 
-    pub fn constrain_knee(chain: &mut [(f32,f32,f32)], limits: &crate::skeleton::AngleRange) {
-        let constraint = ConstraintDef::hinge(limits.min, limits.max);
-        Self::constrain_hinge(chain, &constraint);
+    pub fn constrain_knee(chain: &mut [(f32,f32,f32)], limits: &crate::skeleton::AngleRange, pole: Vec3) {
+        Self::constrain_hinge(chain, &ConstraintDef::hinge(limits.min, limits.max), pole);
     }
     
     /// Cone constraint - for shoulder/hip with spherical motion limit
@@ -577,9 +622,11 @@ impl Pose {
     fn constrain_distance(from: (f32,f32,f32), to: (f32,f32,f32), len: f32) -> (f32,f32,f32) {
         let (dx, dy, dz) = (to.0 - from.0, to.1 - from.1, to.2 - from.2);
         let d = (dx*dx + dy*dy + dz*dz).sqrt();
-        if d < 0.001 { 
-            // Prevent division by zero if collapsed. Push slightly in X or previous direction.
-            return (from.0 + len, from.1, from.2); 
+        if d < 0.001 {
+            // Joints collapsed to the same point — return `to` unchanged.
+            // The opposite FABRIK pass will pull it to the correct distance without
+            // snapping to an arbitrary +X direction (which caused visible pops).
+            return to;
         }
         let s = len / d;
         (from.0 + dx*s, from.1 + dy*s, from.2 + dz*s)
@@ -667,27 +714,31 @@ impl Pose {
             }
         }
         
+        let pole_l   = Vec3::new(-0.3, 0.0, 1.0).norm();
+        let pole_r   = Vec3::new( 0.3, 0.0, 1.0).norm();
+        let pole_fwd = Vec3::new( 0.0, 0.0, 1.0);
+
         // Left arm chain
         let mut chain = [self.left_shoulder.xyz(), self.left_elbow.xyz(), self.left_wrist.xyz()];
-        Self::constrain_elbow(&mut chain, &sk.constraints.elbow);
+        Self::constrain_elbow(&mut chain, &sk.constraints.elbow, pole_l);
         self.left_elbow.set_xyz(chain[1]);
         self.left_wrist.set_xyz(chain[2]);
-        
+
         // Right arm chain
         let mut chain = [self.right_shoulder.xyz(), self.right_elbow.xyz(), self.right_wrist.xyz()];
-        Self::constrain_elbow(&mut chain, &sk.constraints.elbow);
+        Self::constrain_elbow(&mut chain, &sk.constraints.elbow, pole_r);
         self.right_elbow.set_xyz(chain[1]);
         self.right_wrist.set_xyz(chain[2]);
-        
+
         // Left leg chain
         let mut chain = [self.crotch.xyz(), self.left_knee.xyz(), self.left_ankle.xyz()];
-        Self::constrain_knee(&mut chain, &sk.constraints.knee);
+        Self::constrain_knee(&mut chain, &sk.constraints.knee, pole_fwd);
         self.left_knee.set_xyz(chain[1]);
         self.left_ankle.set_xyz(chain[2]);
-        
+
         // Right leg chain
         let mut chain = [self.crotch.xyz(), self.right_knee.xyz(), self.right_ankle.xyz()];
-        Self::constrain_knee(&mut chain, &sk.constraints.knee);
+        Self::constrain_knee(&mut chain, &sk.constraints.knee, pole_fwd);
         self.right_knee.set_xyz(chain[1]);
         self.right_ankle.set_xyz(chain[2]);
     }

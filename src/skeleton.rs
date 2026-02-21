@@ -27,8 +27,12 @@ pub struct Constraints {
     pub knee: AngleRange,
 }
 
-fn default_elbow() -> AngleRange { AngleRange { min: 0.0, max: 155.0 } }
-fn default_knee()  -> AngleRange { AngleRange { min: 0.0, max: 145.0 } }
+// Angle at the joint between upper and lower bone:
+//   180° = fully straight (extended)  |  ~30° = maximum anatomical flexion
+// OLD values (min:0 max:155) were BACKWARDS: max:155 blocked straightening,
+// and min:0 allowed impossible hyperextension past the bone bulk.
+fn default_elbow() -> AngleRange { AngleRange { min: 30.0, max: 180.0 } }
+fn default_knee()  -> AngleRange { AngleRange { min: 30.0, max: 180.0 } }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Skeleton {
