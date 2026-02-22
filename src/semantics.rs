@@ -121,9 +121,40 @@ fn angle_at(a: V3, b: V3, c: V3) -> f32 {
 
 // ─── Stance ───────────────────────────────────────────────────────────────────
 
+/// Direction suffix for a raised foot, using the hip→ankle vector in body-relative space.
+/// `sign`: +1 for right limb, −1 for left limb (so "outward" is always positive lateral).
+/// Returns a string like " to the side", " forward", " behind", or "" for straight up.
+fn raised_foot_dir(hip: V3, ankle: V3, sign: f32) -> &'static str {
+    let ha   = sub(ankle, hip);
+    let ha_m = mag(ha).max(1e-6);
+    let fwd  =  ha.2 / ha_m;            // +1 = into scene = character's forward
+    let lat  =  ha.0 * sign / ha_m;     // +1 = outward from body centre
+    let up   = -ha.1 / ha_m;            // +1 = ankle above hip
+
+    // atan2-based horizontal angle: 0° = forward, 90° = outward, ±180° = behind.
+    let h_mag   = (fwd * fwd + lat * lat).sqrt().max(1e-6);
+    let h_angle = lat.atan2(fwd).to_degrees();
+    let elev    = up.atan2(h_mag).to_degrees();
+
+    // If the leg is nearly straight up (elevation ≥ 65°) direction is ambiguous — omit.
+    if elev >= 65.0 { return ""; }
+
+    // Use 45°-wide bands centred on the four cardinal directions.
+    if h_angle >  45.0 && h_angle < 135.0 { " to the side" }
+    else if h_angle.abs() < 45.0          { " forward"     }
+    else                                   { " behind"      }
+}
+
 fn stance(p: &Pose, m: &BodyMetrics) -> String {
     // Lying: body nearly horizontal — head and ankles at very similar Y.
     if m.body_h < 80.0 {
+        // Side-lying: head is offset laterally from the crotch by more than the
+        // body is tall. Use shoulder X spread as a sanity reference.
+        let lateral_offset = (p.head.x - p.crotch.x).abs();
+        if lateral_offset > m.body_h * 0.40 {
+            let side = if p.head.x < p.crotch.x { "left" } else { "right" };
+            return format!("lying on {side} side");
+        }
         let face = if p.head.z <= p.crotch.z { "face up" } else { "face down" };
         return format!("lying {face}");
     }
@@ -147,6 +178,12 @@ fn stance(p: &Pose, m: &BodyMetrics) -> String {
     if l_bent && r_bent {
         // ── Kneeling: shins going backward into scene, crotch not too high ───
         if (l_shin_back || r_shin_back) && crotch_h < 0.50 {
+            // Torso lean forward over knees → "kneeling, torso forward"
+            let torso_fwd = p.neck.z - p.crotch.z;
+            let vert      = (p.crotch.y - p.neck.y).abs().max(1.0);
+            if torso_fwd < -vert * 0.30 {
+                return "kneeling, torso leaning forward".into();
+            }
             return "kneeling".into();
         }
         // ── Seated variants ──────────────────────────────────────────────────
@@ -157,6 +194,10 @@ fn stance(p: &Pose, m: &BodyMetrics) -> String {
             }
             let knees_fwd = p.crotch.z - knee_z > 20.0;
             if knees_fwd || crotch_h > 0.38 {
+                // High crotch with feet down = perching on the edge of a seat.
+                if crotch_h > 0.52 {
+                    return "perched, seated on edge".into();
+                }
                 return "seated".into();
             }
         }
@@ -182,12 +223,14 @@ fn stance(p: &Pose, m: &BodyMetrics) -> String {
     let r_raised = m.above_floor(p.right_ankle.y);
 
     if l_raised > raise_threshold && r_raised < raise_threshold / 2.0 {
-        let h = m.foot_raise_desc(p.left_ankle.y);
-        return format!("balancing on right leg, left foot {h}");
+        let h   = m.foot_raise_desc(p.left_ankle.y);
+        let dir = raised_foot_dir(p.crotch.xyz(), p.left_ankle.xyz(), -1.0);
+        return format!("balancing on right leg, left foot {h}{dir}");
     }
     if r_raised > raise_threshold && l_raised < raise_threshold / 2.0 {
-        let h = m.foot_raise_desc(p.right_ankle.y);
-        return format!("balancing on left leg, right foot {h}");
+        let h   = m.foot_raise_desc(p.right_ankle.y);
+        let dir = raised_foot_dir(p.crotch.xyz(), p.right_ankle.xyz(), 1.0);
+        return format!("balancing on left leg, right foot {h}{dir}");
     }
 
     // ── Splits: legs very wide AND crotch near the floor ────────────────────
@@ -202,6 +245,19 @@ fn stance(p: &Pose, m: &BodyMetrics) -> String {
         if sag_ratio >= 1.60 {
             let fwd_leg = if p.left_ankle.z < p.right_ankle.z { "left" } else { "right" };
             return format!("doing the forward splits, {fwd_leg} leg forward");
+        }
+    }
+
+    // ── Tip-toe: both ankles elevated above their natural resting position ──────
+    // Measured as average ankle-above-floor fraction. At normal standing both ankles
+    // rest at floor_y (frac ≈ 0). When both heels are lifted the average rises.
+    // Only fires when legs are otherwise straight (no bend catch above triggered).
+    {
+        let l_frac = m.height_frac(p.left_ankle.y);
+        let r_frac = m.height_frac(p.right_ankle.y);
+        // Both ankles slightly elevated and close to each other → tip-toe
+        if l_frac > 0.06 && r_frac > 0.06 && (l_frac - r_frac).abs() < 0.06 {
+            return format!("standing on tip-toe, {spread}");
         }
     }
 
@@ -238,20 +294,30 @@ fn torso_lean(p: &Pose) -> Option<String> {
         }
     } else { None };
 
-    // Shoulder tilt: one shoulder noticeably higher than the other.
-    // Threshold is proportional to torso height so it stays consistent at any body scale.
-    let sh_dy = p.left_shoulder.y - p.right_shoulder.y; // negative = left shoulder higher
-    let sh_tilt_threshold = (p.crotch.y - p.neck.y).abs() * 0.11; // ~12 px at default scale=40
-    let sh_tilt = if sh_dy < -sh_tilt_threshold { Some("left shoulder raised") }
-                  else if sh_dy > sh_tilt_threshold { Some("right shoulder raised") }
-                  else { None };
-
+    // Diagonal lean: when both forward and lateral components are significant,
+    // collapse into a single descriptive phrase rather than two independent fragments.
     let base = match (fwd, side) {
-        (Some(f), Some(s)) => Some(format!("{f}, {s}")),
+        (Some(_f), Some(_s)) => {
+            // Classify the combined direction into an 8-point compass word.
+            let fwd_dir  = if lean_z < 0.0 { "forward" } else { "back" };
+            let side_dir = if lean_x < 0.0 { "left"    } else { "right" };
+            let intensity = if fwd_angle > 35.0 || side_angle > 25.0 { "leaning" } else { "leaning slightly" };
+            Some(format!("{intensity} {fwd_dir} and to the {side_dir}"))
+        },
         (Some(f), None)    => Some(f.into()),
         (None, Some(s))    => Some(s.into()),
         _                  => None,
     };
+
+    // Shoulder tilt: one shoulder noticeably higher than the other.
+    // Threshold is proportional to torso height so it stays consistent at any body scale.
+    let sh_dy = p.left_shoulder.y - p.right_shoulder.y; // negative = left shoulder higher
+    let sh_tilt_threshold = (p.crotch.y - p.neck.y).abs() * 0.11; // ~12 px at default scale=40
+    let sh_tilt = if sh_dy < -sh_tilt_threshold * 2.0 { Some("left shoulder sharply raised") }
+                  else if sh_dy < -sh_tilt_threshold   { Some("left shoulder raised") }
+                  else if sh_dy > sh_tilt_threshold * 2.0 { Some("right shoulder sharply raised") }
+                  else if sh_dy > sh_tilt_threshold    { Some("right shoulder raised") }
+                  else { None };
 
     match (base, sh_tilt) {
         (Some(b), Some(t)) => Some(format!("{b}, {t}")),
@@ -298,15 +364,29 @@ fn weight_shift(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
     let hip_offset  = p.crotch.x - ankle_mid_x;
     // Threshold: 22% of shoulder width — subtle but clear contrapposto.
     if hip_offset.abs() < m.shoulder_w * 0.22 { return None; }
-    Some(if hip_offset > 0.0 { "weight on right foot".into() } else { "weight on left foot".into() })
+    // Magnitude gradation: slight / clear / pronounced contrapposto.
+    let side = if hip_offset > 0.0 { "right" } else { "left" };
+    let magnitude = if hip_offset.abs() > m.shoulder_w * 0.55 { "strongly " }
+                    else if hip_offset.abs() > m.shoulder_w * 0.38 { "" }
+                    else { "slightly " };
+    Some(format!("{magnitude}weight on {side} foot"))
 }
 
 
+// ─── Head orientation ─────────────────────────────────────────────────────────
 
 fn head_orient(p: &Pose) -> Option<String> {
     let d = norm(sub(p.head.xyz(), p.neck.xyz()));
     let nod_deg = (-d.2).asin().to_degrees(); // + = chin toward viewer (looking down)
     let yaw_deg = d.0.asin().to_degrees();    // + = turned to character's right
+
+    // Head roll: lateral tilt of the head (ear toward shoulder).
+    // Approximated by measuring how far the head drifts laterally relative to
+    // the neck, normalised against the head-to-neck segment length.
+    // Positive = head tilted toward character's right shoulder.
+    let neck_to_head_len = mag(sub(p.head.xyz(), p.neck.xyz())).max(1.0);
+    let roll_x  = p.head.x - p.neck.x;
+    let roll_deg = (roll_x / neck_to_head_len).clamp(-1.0, 1.0).asin().to_degrees();
 
     let nod = match nod_deg as i32 {
         n if n >  35 => Some("head bowed down"),
@@ -322,11 +402,25 @@ fn head_orient(p: &Pose) -> Option<String> {
         y if y < -15 => Some("glancing left"),
         _             => None,
     };
+    let roll = match roll_deg as i32 {
+        r if r >  20 => Some("head tilted to the right"),
+        r if r >  10 => Some("head slightly tilted right"),
+        r if r < -20 => Some("head tilted to the left"),
+        r if r < -10 => Some("head slightly tilted left"),
+        _             => None,
+    };
 
-    match (nod, yaw) {
+    let base = match (nod, yaw) {
         (Some(n), Some(y)) => Some(format!("{n}, {y}")),
         (Some(n), None)    => Some(n.into()),
         (None, Some(y))    => Some(y.into()),
+        _                  => None,
+    };
+
+    match (base, roll) {
+        (Some(b), Some(r)) => Some(format!("{b}, {r}")),
+        (Some(b), None)    => Some(b),
+        (None, Some(r))    => Some(r.into()),
         _                  => None,
     }
 }
@@ -367,6 +461,43 @@ fn arms(p: &Pose, m: &BodyMetrics) -> Option<String> {
         }
     }
 
+    // ── Arms folded across chest ──────────────────────────────────────────────
+    // Both elbows bent ~90°, each wrist crossing past the body midline to the
+    // opposite side. Distinct from "arms crossed" (elbow-only displacement check).
+    {
+        let l_ang  = angle_at(p.left_shoulder.xyz(),  p.left_elbow.xyz(),  p.left_wrist.xyz());
+        let r_ang  = angle_at(p.right_shoulder.xyz(), p.right_elbow.xyz(), p.right_wrist.xyz());
+        let mid_x  = (p.left_shoulder.x + p.right_shoulder.x) / 2.0;
+        let l_wrist_crossed = p.left_wrist.x  > mid_x + 10.0;
+        let r_wrist_crossed = p.right_wrist.x < mid_x - 10.0;
+        let chest_band_y = m.shoulder_y + m.torso_h * 0.30;
+        let l_at_chest = (p.left_wrist.y  - chest_band_y).abs() < m.torso_h * 0.35;
+        let r_at_chest = (p.right_wrist.y - chest_band_y).abs() < m.torso_h * 0.35;
+        if l_ang < 110.0 && r_ang < 110.0 && l_wrist_crossed && r_wrist_crossed
+           && l_at_chest && r_at_chest {
+            return Some("arms folded across chest".into());
+        }
+    }
+
+    // ── Hand on chest ────────────────────────────────────────────────────────
+    // One or both wrists resting near the sternum — expressive or defensive gesture.
+    {
+        let sternum_x: f32 = (p.left_shoulder.x + p.right_shoulder.x) / 2.0;
+        let sternum_y: f32 = m.shoulder_y + m.torso_h * 0.25;
+        let sternum_z: f32 = (p.left_shoulder.z + p.right_shoulder.z) / 2.0;
+        let sternum: V3    = (sternum_x, sternum_y, sternum_z);
+        let thresh         = m.torso_h * 0.28;
+        let l_chest = mag(sub(p.left_wrist.xyz(),  sternum)) < thresh;
+        let r_chest = mag(sub(p.right_wrist.xyz(), sternum)) < thresh;
+        if l_chest && r_chest {
+            return Some("both hands on chest".into());
+        } else if l_chest {
+            return Some("left hand on chest".into());
+        } else if r_chest {
+            return Some("right hand on chest".into());
+        }
+    }
+
     // ── Hands on hips ─────────────────────────────────────────────────────────
     {
         let l_at_hip = (p.left_wrist.y  - m.hip_y).abs() < m.torso_h * 0.30;
@@ -377,6 +508,24 @@ fn arms(p: &Pose, m: &BodyMetrics) -> Option<String> {
         let r_angle  = angle_at(p.right_shoulder.xyz(), p.right_elbow.xyz(), p.right_wrist.xyz());
         if l_at_hip && r_at_hip && l_out && r_out && l_angle < 120.0 && r_angle < 120.0 {
             return Some("hands on hips".into());
+        }
+        // ── One hand on hip (akimbo) — fall through to per-arm for the other side
+        if l_at_hip && l_out && l_angle < 120.0 && !(r_at_hip && r_out && r_angle < 120.0) {
+            // Record left akimbo; right arm will be described individually below.
+            // Return early only if right arm is also classifiable as "at side" or similar,
+            // otherwise rely on per-arm logic by breaking out.
+            let r_desc = describe_arm(p.right_shoulder.xyz(), p.right_elbow.xyz(),
+                                      p.right_wrist.xyz(), head, "right", m);
+            if let Some(rd) = r_desc {
+                return Some(format!("left hand on hip, {rd}"));
+            }
+        }
+        if r_at_hip && r_out && r_angle < 120.0 && !(l_at_hip && l_out && l_angle < 120.0) {
+            let l_desc = describe_arm(p.left_shoulder.xyz(), p.left_elbow.xyz(),
+                                      p.left_wrist.xyz(), head, "left", m);
+            if let Some(ld) = l_desc {
+                return Some(format!("right hand on hip, {ld}"));
+            }
         }
     }
 
@@ -390,6 +539,43 @@ fn arms(p: &Pose, m: &BodyMetrics) -> Option<String> {
         }
     }
 
+    // ── Hand on neck ─────────────────────────────────────────────────────────
+    // One wrist near the neck joint — common in surprise, vulnerability, or thinking poses.
+    {
+        let neck: V3 = p.neck.xyz();
+        let l_neck = mag(sub(p.left_wrist.xyz(),  neck)) < m.torso_h * 0.24;
+        let r_neck = mag(sub(p.right_wrist.xyz(), neck)) < m.torso_h * 0.24;
+        if l_neck && r_neck {
+            return Some("both hands at neck".into());
+        } else if l_neck {
+            let r_desc = describe_arm(p.right_shoulder.xyz(), p.right_elbow.xyz(),
+                                      p.right_wrist.xyz(), head, "right", m);
+            if let Some(rd) = r_desc { return Some(format!("left hand at neck, {rd}")); }
+            return Some("left hand at neck".into());
+        } else if r_neck {
+            let l_desc = describe_arm(p.left_shoulder.xyz(), p.left_elbow.xyz(),
+                                      p.left_wrist.xyz(), head, "left", m);
+            if let Some(ld) = l_desc { return Some(format!("right hand at neck, {ld}")); }
+            return Some("right hand at neck".into());
+        }
+    }
+
+    // ── Parade rest / fig-leaf — wrists crossed at pelvis ────────────────────
+    // Both wrists near the hip/pelvis level and very close together.
+    // Wrist overlap (one in front of the other in X) distinguishes from clasped hands.
+    {
+        let wr_dist    = mag(sub(p.left_wrist.xyz(), p.right_wrist.xyz()));
+        let mid_y      = (p.left_wrist.y + p.right_wrist.y) / 2.0;
+        let at_pelvis  = (mid_y - m.hip_y).abs() < m.torso_h * 0.28;
+        if at_pelvis && wr_dist < m.torso_h * 0.30 {
+            // X-overlap: wrists laterally coincident rather than widely clasped
+            let x_sep = (p.left_wrist.x - p.right_wrist.x).abs();
+            if x_sep < m.shoulder_w * 0.25 {
+                return Some("hands clasped at rest in front".into());
+            }
+        }
+    }
+
     let left  = describe_arm(p.left_shoulder.xyz(),  p.left_elbow.xyz(),
                              p.left_wrist.xyz(),  head, "left",  m);
     let right = describe_arm(p.right_shoulder.xyz(), p.right_elbow.xyz(),
@@ -399,13 +585,19 @@ fn arms(p: &Pose, m: &BodyMetrics) -> Option<String> {
     // The level qualifiers attached to some labels prevent exact matches when
     // the arms are at different heights, which is the correct behaviour.
     let sym = symmetrize_prefix(&left, &right, &[
-        ("left arm at side",               "right arm at side",               "arms at sides"),
-        ("left arm raised overhead",       "right arm raised overhead",       "arms raised overhead"),
-        ("left arm raised",                "right arm raised",                "arms raised"),
-        ("left arm extended forward",      "right arm extended forward",      "arms extended forward"),
-        ("left arm outstretched sideways", "right arm outstretched sideways", "arms outstretched sideways"),
-        ("left arm crossed",               "right arm crossed",               "arms crossed"),
-        ("left arm behind back",           "right arm behind back",           "arms behind back"),
+        ("left arm at side",                  "right arm at side",                  "arms at sides"),
+        ("left arm raised overhead",          "right arm raised overhead",          "arms raised overhead"),
+        ("left arm raised",                   "right arm raised",                   "arms raised"),
+        ("left arm slightly raised",          "right arm slightly raised",          "arms slightly raised"),
+        ("left arm extended forward",         "right arm extended forward",         "arms extended forward"),
+        ("left arm extended forward-outward", "right arm extended forward-outward", "arms extended forward-outward"),
+        ("left arm reaching forward",         "right arm reaching forward",         "arms reaching forward"),
+        ("left arm pointing forward",         "right arm pointing forward",         "arms pointing forward"),
+        ("left arm outstretched sideways",    "right arm outstretched sideways",    "arms outstretched sideways"),
+        ("left arm crossed",                  "right arm crossed",                  "arms crossed"),
+        ("left arm behind back",              "right arm behind back",              "arms behind back"),
+        ("left arm slightly behind",          "right arm slightly behind",          "arms slightly behind"),
+        ("left arm resting against body",     "right arm resting against body",     "arms resting at sides"),
         // Bent arms: collapse only when both are at the same level (exact match).
         // If levels differ, per-arm description is more informative, so no prefix rule.
     ]);
@@ -440,23 +632,31 @@ fn describe_arm(sh: V3, el: V3, wr: V3, head: V3, side: &str, m: &BodyMetrics) -
     let out =  sw.0 * sign / sw_m;
     let fwd =  sw.2 / sw_m; // +1 = into scene = character's forward
 
+    // atan2-based angles for more precise directional classification.
+    //   horiz_angle : angle in the horizontal plane measured from forward axis.
+    //                 0° = pure forward, 90° = pure outward, ±180° = pure back.
+    //   elev_angle  : elevation above/below horizontal.
+    //                 +90° = straight up, −90° = straight down, 0° = horizontal.
+    let horiz_mag   = (fwd * fwd + out * out).sqrt().max(1e-6);
+    let horiz_angle = out.atan2(fwd).to_degrees(); // signed: + = outward sweep
+    let elev_angle  = up.atan2(horiz_mag).to_degrees();
+
     // Elbow outward displacement from shoulder (negative = crossed to opposite side).
     let el_out     = (el.0 - sh.0) * sign;
     let elbow_angle = angle_at(sh, el, wr);
 
     // ── Overhead — most dramatic, check first ─────────────────────────────────
-    if up > 0.65 {
-        let dir = if fwd > 0.40 { " forward" } else if fwd < -0.40 { " back" }
-                  else if out > 0.40 { " to the side" } else { "" };
-        return Some(format!("{side} arm raised overhead{dir}"));
-    }
-    if up > 0.30 {
-        let dir = if fwd > 0.45 { " forward" } else if fwd < -0.45 { " back" }
-                  else if out > 0.45 { " to the side" } else { "" };
-        return Some(format!("{side} arm raised{dir}"));
+    if elev_angle > 40.0 {
+        // horiz_angle: 0°=fwd, 90°=out, ±180°=back. Use 45° bands for clean blends.
+        let dir = if horiz_angle.abs() < 45.0 { " forward" }
+                  else if horiz_angle.abs() > 135.0 { " back" }
+                  else if out > 0.0 { " to the side" }
+                  else { "" };
+        let degree = if elev_angle > 65.0 { "overhead" } else { "raised" };
+        return Some(format!("{side} arm {degree}{dir}"));
     }
     // Arm lifted partway — not dramatically raised but clearly elevated
-    if up > 0.12 {
+    if elev_angle > 10.0 {
         let dir = if fwd > 0.50 { " forward" } else if out > 0.50 { " to the side" } else { "" };
         return Some(format!("{side} arm slightly raised{dir}"));
     }
@@ -466,12 +666,38 @@ fn describe_arm(sh: V3, el: V3, wr: V3, head: V3, side: &str, m: &BodyMetrics) -
         return Some(format!("{side} arm crossed"));
     }
 
+    // ── Pointing — arm fully extended, aimed in a clear direction ────────────
+    // elbow_angle > 155° distinguishes a true point from a general extend/reach.
+    if elbow_angle > 155.0 {
+        if elev_angle > 35.0 {
+            let dir = if horiz_angle.abs() < 45.0 { " forward" }
+                      else if out > 0.0 { " outward" } else { "" };
+            return Some(format!("{side} arm pointing up{dir}"));
+        }
+        if fwd > 0.55 {
+            let level = m.level_name(wr.1);
+            return Some(format!("{side} arm pointing forward {level}"));
+        }
+        if out > 0.55 {
+            let level = m.level_name(wr.1);
+            return Some(format!("{side} arm pointing sideways {level}"));
+        }
+        if fwd < -0.45 {
+            return Some(format!("{side} arm pointing behind"));
+        }
+    }
+
     // ── Forward / behind / sideways — straight-ish arm reaching ──────────────
+    // horiz_angle bands: |h| < 55° = forward dominant, |h| > 125° = behind dominant,
+    // otherwise lateral. Combined with elev_angle gives cleaner blended directions.
     // Threshold 120° (was 130°) closes the dead zone where bent-arm check also
     // starts at 120°, eliminating silent None returns for arms in that range.
     if fwd > 0.50 && elbow_angle > 120.0 {
         let level = m.level_name(wr.1);
-        return Some(format!("{side} arm extended forward {level}"));
+        // Distinguish diagonal-forward from straight-forward using horiz_angle
+        let dir = if horiz_angle.abs() < 30.0 { "extended forward" }
+                  else { "extended forward-outward" };
+        return Some(format!("{side} arm {dir} {level}"));
     }
     // Partial forward reach — arm angled forward but not fully extended
     if fwd > 0.28 && elbow_angle > 120.0 {
@@ -508,16 +734,30 @@ fn describe_arm(sh: V3, el: V3, wr: V3, head: V3, side: &str, m: &BodyMetrics) -
             return Some(format!("{side} arm resting against body {level}"));
         }
         let _ = torso_centre_x; // suppress unused warning
+        let _ = (horiz_angle, elev_angle); // used above; suppress if only partially consumed
     }
 
     // ── Bent elbow — where is the hand, and where does the elbow point? ────────
     // Threshold raised to 130° so it overlaps with the straight-arm checks above,
     // ensuring no angle falls silently through both conditions.
     if elbow_angle < 130.0 {
-        // Hand proximity overrides level — far more descriptive for AI prompts
+        // ── Hand near head — sub-region breakdown ─────────────────────────────
+        // Order matters: most specific checks first.
         let dist_to_head = mag(sub(wr, head));
         if dist_to_head < m.torso_h * 0.22 {
-            return Some(format!("{side} hand near face"));
+            // Determine which part of the head the hand is near using Y and Z offsets.
+            let wr_above_head = wr.1 < head.1 - m.torso_h * 0.08; // wrist above head centre
+            let wr_at_chin    = wr.1 > head.1 + m.torso_h * 0.06; // wrist below head centre (chin)
+            let wr_fwd_of_head = wr.2 < head.2 - 10.0;            // wrist toward viewer = covering face
+            return Some(if wr_above_head {
+                format!("{side} hand on top of head")
+            } else if wr_at_chin {
+                format!("{side} hand at chin")
+            } else if wr_fwd_of_head {
+                format!("{side} hand covering face")
+            } else {
+                format!("{side} hand near face")
+            });
         }
         if wr.2 < head.2 - 18.0 && (wr.1 - head.1).abs() < m.torso_h * 0.22 {
             return Some(format!("{side} hand behind head"));
@@ -541,6 +781,13 @@ fn describe_arm(sh: V3, el: V3, wr: V3, head: V3, side: &str, m: &BodyMetrics) -
                         else if el_out > 0.50 { " elbow out" }
                         else if el_out < -0.30 { " elbow in" }
                         else { "" };
+
+        // Wrist at belly / lower abdomen — thinking or resting pose
+        let belly_y = m.hip_y - m.torso_h * 0.15;
+        if (wr.1 - belly_y).abs() < m.torso_h * 0.20 && out.abs() < 0.45 {
+            return Some(format!("{side} arm {bend_deg}{elbow_dir}, hand at abdomen"));
+        }
+
         return Some(format!("{side} arm {bend_deg}{elbow_dir}, hand {level}"));
     }
 
@@ -557,10 +804,12 @@ fn legs(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
     if stance_str.starts_with("lying")
         || stance_str.starts_with("balancing")
         || stance_str.starts_with("seated")
+        || stance_str.starts_with("perched")
         || stance_str.contains("squat")
         || stance_str.contains("kneeling")
         || stance_str.contains("knee raised")
         || stance_str.contains("splits")
+        || stance_str.contains("tip-toe")
     {
         return None;
     }
@@ -590,13 +839,35 @@ fn legs(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
     let left  = describe_leg(p.crotch.xyz(), p.left_knee.xyz(),  p.left_ankle.xyz(),  "left",  m);
     let right = describe_leg(p.crotch.xyz(), p.right_knee.xyz(), p.right_ankle.xyz(), "right", m);
 
+    // ── Crossed ankles (standing rest pose) ───────────────────────────────────
+    // Left ankle has drifted right of the right ankle — ankles crossed.
+    // Only meaningful when both legs are mostly straight (not a lunge/step already described).
+    {
+        let ankles_crossed = p.left_ankle.x > p.right_ankle.x + 8.0;
+        let l_straight = left.as_deref().map_or(false,  |s| s.contains("straight") || s.contains("slightly bent"));
+        let r_straight = right.as_deref().map_or(false, |s| s.contains("straight") || s.contains("slightly bent"));
+        if ankles_crossed && l_straight && r_straight {
+            return Some("ankles crossed".into());
+        }
+    }
+
     // ── Symmetric leg pairs ───────────────────────────────────────────────────
     // Only exact-string pairs collapse; "raised to hip height" etc. won't match
     // unless both legs are at the exact same level, which is usually fine.
     let sym = symmetrize(&left, &right, &[
-        ("left leg forward",  "right leg back",     "legs in stride"),
-        ("left leg back",     "right leg forward",  "legs in stride"),
-        ("left leg forward",  "right leg forward",  "both legs forward"),
+        ("left leg forward",               "right leg back",             "legs in stride"),
+        ("left leg back",                  "right leg forward",          "legs in stride"),
+        ("left leg forward",               "right leg forward",          "both legs forward"),
+        ("left leg forward-outward",       "right leg back",             "legs in diagonal stride"),
+        ("left leg back",                  "right leg forward-outward",  "legs in diagonal stride"),
+        ("left leg bent",                  "right leg bent",             "both legs bent"),
+        ("left leg slightly bent",         "right leg slightly bent",    "legs slightly bent"),
+        ("left leg deeply bent",           "right leg deeply bent",      "legs deeply bent"),
+        ("left leg straight",              "right leg straight",         "legs straight"),
+        ("left leg out to the side",       "right leg out to the side",  "legs out to the sides"),
+        ("left leg forward bent",          "right leg stepping back",    "legs in stride, lead knee bent"),
+        ("left leg stepping forward",      "right leg back",             "legs in stride"),
+        ("left leg back",                  "right leg stepping forward", "legs in stride"),
     ]);
     if let Some(s) = sym { return Some(s); }
 
@@ -619,16 +890,22 @@ fn legs(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
     // Uses starts_with so knee-dir suffixes (" knee out" etc.) don't block the match.
     let l = left.as_deref().unwrap_or("");
     let r = right.as_deref().unwrap_or("");
-    if (l.starts_with("left leg forward bent") || l.starts_with("left leg forward deeply bent")
-        || l.starts_with("left leg stepping forward bent"))
-       && (r.starts_with("right leg back") || r.starts_with("right leg stepping back")) {
-        return Some("lunge, left leg leading".into());
-    }
-    if (r.starts_with("right leg forward bent") || r.starts_with("right leg forward deeply bent")
-        || r.starts_with("right leg stepping forward bent"))
-       && (l.starts_with("left leg back") || l.starts_with("left leg stepping back")) {
-        return Some("lunge, right leg leading".into());
-    }
+    // Match forward-outward (diagonal combat/dance lunge) as well as straight forward.
+    let l_fwd_bent = l.starts_with("left leg forward bent")
+        || l.starts_with("left leg forward deeply bent")
+        || l.starts_with("left leg forward-outward bent")
+        || l.starts_with("left leg forward-outward deeply bent")
+        || l.starts_with("left leg stepping forward bent");
+    let r_fwd_bent = r.starts_with("right leg forward bent")
+        || r.starts_with("right leg forward deeply bent")
+        || r.starts_with("right leg forward-outward bent")
+        || r.starts_with("right leg forward-outward deeply bent")
+        || r.starts_with("right leg stepping forward bent");
+    // "trailing" = the opposite leg is back; check the *other* leg for the back pattern.
+    let right_is_back = r.starts_with("right leg back") || r.starts_with("right leg stepping back");
+    let left_is_back  = l.starts_with("left leg back")  || l.starts_with("left leg stepping back");
+    if l_fwd_bent && right_is_back { return Some("lunge, left leg leading".into()); }
+    if r_fwd_bent && left_is_back  { return Some("lunge, right leg leading".into()); }
 
     match (left.as_deref(), right.as_deref()) {
         (None, None)       => None,
@@ -660,6 +937,13 @@ fn describe_leg(hip: V3, kn: V3, an: V3, side: &str, m: &BodyMetrics) -> Option<
     let lat =  ha.0 * sign / ha_m;    // +1 = ankle outward (away from centre)
     let bend = angle_at(hip, kn, an); // angle at the knee; 180 = straight
 
+    // atan2-based angles for precise directional labeling:
+    //   h_angle: angle in horizontal plane from forward axis (+° = outward sweep).
+    //   elev   : elevation of ankle relative to hip (+° = raised, −° = lowered).
+    let h_mag   = (fwd * fwd + lat * lat).sqrt().max(1e-6);
+    let h_angle = lat.atan2(fwd).to_degrees(); // 0°=fwd, 90°=outward, 180°=back
+    let elev    = up.atan2(h_mag).to_degrees();
+
     // ── Knee lateral deviation from the hip→ankle centreline ─────────────────
     // Interpolate the hip→ankle line at the knee's Y to find the "neutral" X.
     let t = if (an.1 - hip.1).abs() > 1.0 { (kn.1 - hip.1) / (an.1 - hip.1) } else { 0.5 };
@@ -675,17 +959,18 @@ fn describe_leg(hip: V3, kn: V3, an: V3, side: &str, m: &BodyMetrics) -> Option<
     let shin_back = kn.2 - an.2 > 20.0; // ankle closer to viewer than knee → shin angled back
 
     // ── Ankle clearly above hip (leg raised / kicked) ─────────────────────────
-    if up > 0.30 {
+    if elev > 17.0 {  // atan2: ~17° corresponds to up ≈ 0.30 of ha_m
         let h   = m.foot_raise_desc(an.1);
-        let dir = if fwd > 0.35 { " forward" }
-                  else if fwd < -0.35 { " behind" }
-                  else if lat > 0.35 { " to the side" }
-                  else { "" };
+        // Use h_angle bands for cleaner directional blends
+        let dir = if h_angle.abs() < 55.0   { " forward" }
+                  else if h_angle.abs() > 125.0 { " behind" }
+                  else if lat > 0.0         { " to the side" }
+                  else                      { "" };
         return Some(format!("{side} leg {h}{dir}"));
     }
 
     // ── Lateral swing (leg kicked / planted out to the side) ─────────────────
-    if lat > 0.45 {
+    if h_angle > 55.0 && h_angle < 125.0 {   // clearly lateral, forward bias < 55°
         let bent_sfx = if bend < 130.0 { ", bent" } else { "" };
         return Some(format!("{side} leg out to the side{bent_sfx}"));
     }
@@ -694,7 +979,9 @@ fn describe_leg(hip: V3, kn: V3, an: V3, side: &str, m: &BodyMetrics) -> Option<
     if fwd > 0.55 {
         let bent_sfx = if bend < 100.0 { " deeply bent" } else if bend < 130.0 { " bent" }
                        else if bend < 155.0 { " slightly bent" } else { " straight" };
-        return Some(format!("{side} leg forward{bent_sfx}{knee_dir}"));
+        // Diagonal forward-outward is a common combat or dance stance worth naming
+        let dir = if h_angle > 30.0 && h_angle < 80.0 { " forward-outward" } else { " forward" };
+        return Some(format!("{side} leg{dir}{bent_sfx}{knee_dir}"));
     }
     if fwd > 0.35 {
         let bent_sfx = if bend < 130.0 { " bent" } else if bend < 155.0 { " slightly bent" } else { "" };
@@ -730,6 +1017,7 @@ fn describe_leg(hip: V3, kn: V3, an: V3, side: &str, m: &BodyMetrics) -> Option<
     // ── Fully straight ────────────────────────────────────────────────────────
     // `else` rather than `if bend > 155.0` to close the float gap at exactly 155.0,
     // which would otherwise fall silently through to None.
+    let _ = (h_angle, elev); // used above; suppress if residual paths don't reach them
     Some(format!("{side} leg straight{knee_dir}"))
 }
 
