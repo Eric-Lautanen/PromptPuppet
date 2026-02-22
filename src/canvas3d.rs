@@ -100,7 +100,7 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     if just_pressed {
         if let Some(pos) = ui.input(|i| i.pointer.interact_pos()) {
             if !button_area.contains(pos) {
-                *drag = find_nearest(pose, &sk, cam, resp.rect, pos);
+                *drag = find_nearest(pose, &sk, cam, resp.rect, pos).map(str::to_owned);
                 // drag == None means empty space → rotation mode
             }
         }
@@ -196,8 +196,8 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     let _ = line_idx; // suppress unused warning
 
     // Determine which joint is under cursor for hover highlight
-    let hovered_joint: Option<String> = if drag.is_some() {
-        drag.clone()
+    let hovered_joint: Option<&str> = if drag.is_some() {
+        drag.as_deref()
     } else {
         ui.input(|i| i.pointer.hover_pos())
             .filter(|pos| resp.rect.contains(*pos) && !button_area.contains(*pos))
@@ -205,7 +205,7 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     };
 
     struct Draw { a:Pos2, b:Pos2, z:f32, c:Color32, is_j:bool, r:f32, hovered:bool }
-    let mut draws: Vec<Draw> = Vec::with_capacity(sk.bones.len() + sk.joints.len());
+    let mut draws: Vec<Draw> = Vec::new();
 
     for bone in &sk.bones {
         if let (Some(ja),Some(jb)) = (get(pose,&bone.a),get(pose,&bone.b)) {
@@ -223,7 +223,7 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     for jd in &sk.joints {
         if let Some(j) = get(pose,&jd.name) {
             if let Some((pos,z)) = cam.project(world(j),resp.rect) {
-                let is_hov = hovered_joint.as_deref() == Some(jd.name.as_str());
+                let is_hov = hovered_joint == Some(jd.name.as_str());
                 let c = if let Some(dt) = disco_time {
                     let joint_hash = jd.name.len() as f32 * 0.11;
                     let hue = (dt * 0.3 + joint_hash).rem_euclid(1.0);
@@ -392,26 +392,22 @@ fn draw_view_buttons(ui: &mut Ui, cam: &mut Camera3D, rect: Rect) -> Rect {
     button_area
 }
 
-fn find_nearest(pose: &Pose, sk: &Skeleton, cam: &Camera3D, r: Rect, pos: Pos2) -> Option<String> {
+fn find_nearest<'a>(pose: &Pose, sk: &'a Skeleton, cam: &Camera3D, r: Rect, pos: Pos2) -> Option<&'a str> {
     // Hit radius scales with zoom so joints are equally clickable when zoomed out.
     // Minimum 14px so tiny/distant joints are still reachable.
     let zoom_scale = cam.scale.clamp(0.5, 3.0);
-    let mut candidates: Vec<(String, f32, f32)> = sk.joints.iter()
-        .filter_map(|jd| {
-            let (sp, z) = cam.project(world(get(pose,&jd.name)?),r)?;
-            let dist = sp.distance(pos);
-            let hit_radius = (jd.radius * 1.5 * zoom_scale + 6.0).max(14.0);
-            (dist < hit_radius).then_some((jd.name.clone(), dist, z))
-        })
-        .collect();
-    
-    // Closer joints (lower z) take priority; break ties by 2D distance
-    candidates.sort_by(|a, b| {
-        a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
-    });
-    
-    candidates.first().map(|(name, _, _)| name.clone())
+    let mut best: Option<(usize, f32, f32)> = None; // (idx, dist, z)
+    for (i, jd) in sk.joints.iter().enumerate() {
+        let Some((sp, z)) = cam.project(world(get(pose, &jd.name)?), r) else { continue };
+        let dist = sp.distance(pos);
+        let hit_radius = (jd.radius * 1.5 * zoom_scale + 6.0).max(14.0);
+        if dist < hit_radius {
+            // Prefer closer z (nearer to viewer), break ties by 2D distance
+            let better = best.map_or(true, |(_, bd, bz)| z < bz || (z == bz && dist < bd));
+            if better { best = Some((i, dist, z)); }
+        }
+    }
+    best.map(|(i, _, _)| sk.joints[i].name.as_str())
 }
 
 fn move_joint(pose: &mut Pose, name: &str, sk: &Skeleton, cam: &Camera3D, delta: Vec2) {

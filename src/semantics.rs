@@ -190,6 +190,21 @@ fn stance(p: &Pose, m: &BodyMetrics) -> String {
         return format!("balancing on left leg, right foot {h}");
     }
 
+    // ── Splits: legs very wide AND crotch near the floor ────────────────────
+    // Side splits:    ankles spread laterally (X), crotch dropped to floor level.
+    // Forward splits: one ankle far forward, one far back (Z), crotch dropped.
+    let lat_ratio = (p.left_ankle.x - p.right_ankle.x).abs() / m.shoulder_w;
+    let sag_ratio = (p.left_ankle.z - p.right_ankle.z).abs() / m.shoulder_w;
+    if crotch_h < 0.32 {
+        if lat_ratio >= 1.60 {
+            return "doing the side splits".into();
+        }
+        if sag_ratio >= 1.60 {
+            let fwd_leg = if p.left_ankle.z < p.right_ankle.z { "left" } else { "right" };
+            return format!("doing the forward splits, {fwd_leg} leg forward");
+        }
+    }
+
     format!("standing, {spread}")
 }
 
@@ -545,6 +560,7 @@ fn legs(p: &Pose, m: &BodyMetrics, stance_str: &str) -> Option<String> {
         || stance_str.contains("squat")
         || stance_str.contains("kneeling")
         || stance_str.contains("knee raised")
+        || stance_str.contains("splits")
     {
         return None;
     }

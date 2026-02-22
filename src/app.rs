@@ -55,8 +55,27 @@ impl std::hash::Hash for Settings {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut pairs: Vec<_> = self.values.iter().collect();
         pairs.sort_unstable_by_key(|(k, _)| k.as_str());
-        // serde_json::Value doesn't implement Hash; .to_string() is compact and correct.
-        for (k, v) in pairs { k.hash(state); v.to_string().hash(state); }
+        for (k, v) in pairs { k.hash(state); hash_json_value(v, state); }
+    }
+}
+
+/// Hash a serde_json::Value without allocating a String.
+/// Prefix each variant with a discriminant byte so Bool(true) ≠ Number(1).
+fn hash_json_value<H: std::hash::Hasher>(v: &serde_json::Value, state: &mut H) {
+    use serde_json::Value::*;
+    match v {
+        Null          => 0u8.hash(state),
+        Bool(b)       => { 1u8.hash(state); b.hash(state); }
+        Number(n)     => { 2u8.hash(state);
+                           // as_f64 is infallible for all finite JSON numbers;
+                           // to_bits() gives a stable u64 with no allocation.
+                           n.as_f64().unwrap_or(0.0).to_bits().hash(state); }
+        String(s)     => { 3u8.hash(state); s.hash(state); }
+        Array(a)      => { 4u8.hash(state); for x in a { hash_json_value(x, state); } }
+        Object(o)     => { 5u8.hash(state);
+                           let mut ks: Vec<_> = o.iter().collect();
+                           ks.sort_unstable_by_key(|(k,_)| k.as_str());
+                           for (k, val) in ks { k.hash(state); hash_json_value(val, state); } }
     }
 }
 
@@ -148,6 +167,8 @@ pub struct PromptPuppetApp {
     /// True once the user has manually dragged a joint. Cleared when a preset
     /// or reset restores a known pose — at which point the JSON prompt returns.
     pub pose_is_manual:   bool,
+    /// Accumulated time since last prompt rebuild (used to throttle during drag).
+    prompt_throttle:      f32,
 
     // ── 🕺 Easter egg: Ctrl+Shift+D → Dance Mode ─────────────────────────────
     pub dance_mode:       bool,
@@ -309,6 +330,7 @@ impl Default for PromptPuppetApp {
             save_dialog: None, load_dialog: false, saves: load_saves(),
             camera_3d: Camera3D::default(),
             pose_is_manual: false,
+            prompt_throttle: 0.0,
             dance_mode: false, dance_time: 0.0, pre_dance_pose: None,
         }
     }
@@ -528,7 +550,8 @@ impl eframe::App for PromptPuppetApp {
             }
         }
         if self.load_dialog {
-            if let Some(action) = show_load_dialog(ctx, self.dark_mode, &self.saves) {
+            let snap = self.saves.clone();
+            if let Some(action) = show_load_dialog(ctx, self.dark_mode, &snap) {
                 match action {
                     DialogAction::Load(i)   => { self.do_load(i);   self.load_dialog = false; }
                     DialogAction::Delete(i) => self.do_delete(i),
@@ -651,10 +674,25 @@ impl eframe::App for PromptPuppetApp {
 
         // Change detection: rebuild the prompt only when AppState actually changes.
         // AppState now implements Hash directly (sorted HashMap iteration +
-        // serde_json::Value.to_string() for settings), so this is allocation-free
-        // at idle — no longer pays for format!("{:?}") every frame.
+        // allocation-free serde_json::Value hashing), so this is low-cost at idle.
+        // During a joint drag the pose changes every frame, but rebuilding the prompt
+        // at 60fps is wasteful — the semantics description is throttled to ~150ms.
         let h = { let mut h = DefaultHasher::new(); self.state.hash(&mut h); h.finish() };
-        if h != self.state_hash { self.state_hash = h; self.update_prompt(); }
+        if h != self.state_hash {
+            self.state_hash = h;
+            let dt = ctx.input(|i| i.stable_dt);
+            let is_dragging = self.dragging_joint_3d.is_some();
+            if is_dragging {
+                self.prompt_throttle += dt;
+                if self.prompt_throttle >= 0.15 {
+                    self.prompt_throttle = 0.0;
+                    self.update_prompt();
+                }
+            } else {
+                self.prompt_throttle = 0.0;
+                self.update_prompt();
+            }
+        }
 
         if self.status_timer > 0.0 {
             self.status_timer -= ctx.input(|i| i.stable_dt);

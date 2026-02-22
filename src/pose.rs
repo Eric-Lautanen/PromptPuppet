@@ -132,6 +132,24 @@ impl Pose {
             "right_ankle" => self.fabrik_right_leg(target, sk, 2),
             _ => {}
         }
+        self.clamp_to_floor();
+    }
+
+    /// Clamp every joint so nothing sinks below the ankle plane.
+    /// Y increases downward in Pose space, so "below floor" means y > floor_y.
+    /// The ankles define the floor and are never clamped themselves.
+    fn clamp_to_floor(&mut self) {
+        let floor_y = self.left_ankle.y.max(self.right_ankle.y);
+        for j in [
+            &mut self.head, &mut self.neck,
+            &mut self.left_shoulder,  &mut self.right_shoulder,
+            &mut self.left_elbow,     &mut self.right_elbow,
+            &mut self.left_wrist,     &mut self.right_wrist,
+            &mut self.waist,          &mut self.crotch,
+            &mut self.left_knee,      &mut self.right_knee,
+        ] {
+            if j.y > floor_y { j.y = floor_y; }
+        }
     }
 
     // ── Shoulder ─────────────────────────────────────────────────────────────
