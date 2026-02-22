@@ -44,7 +44,7 @@ fn main() -> Result<(), eframe::Error> {
                     include_bytes!("../assets/NotoSans-Regular.ttf"))));
             fonts.font_data.insert("noto_emoji".to_owned(),
                 std::sync::Arc::new(egui::FontData::from_static(
-                    include_bytes!("../assets/NotoEmoji-Regular.ttf"))));
+                    include_bytes!("../assets/NotoEmoji-Subset.ttf"))));
             fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap()
                 .insert(0, "noto_sans".to_owned());
             fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap()

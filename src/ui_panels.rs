@@ -1,4 +1,5 @@
 // ui_panels.rs
+use std::sync::Arc;
 use egui::{Ui, CollapsingHeader, ComboBox, Grid, Slider, ScrollArea};
 use crate::app::{PresetItem, PresetMetadata, PromptPuppetApp};
 use crate::json_loader::{OptionCategory, UiConfig, PanelConfig};
@@ -33,17 +34,30 @@ fn render_panel(app: &mut PromptPuppetApp, ui: &mut Ui, panel: &PanelConfig) -> 
 }
 
 fn render_options_panel(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> bool {
-    let Some(lib) = app.libraries.get(key).cloned() else { return false };
-    let data = app.state.options.entry(key.to_string()).or_default();
-    let cats: Vec<_> = lib.categories.iter().filter(|c| c.should_show(data)).cloned().collect();
+    // Collect only the *indices* of visible categories — usize only, no heap allocation.
+    // The full OptionCategory data is accessed by reference inside the Grid closure via
+    // separate field borrows: app.libraries (immutable) and app.state.options (mutable)
+    // are distinct fields of PromptPuppetApp, so Rust allows simultaneous borrows.
+    let visible: Vec<usize> = {
+        let Some(lib) = app.libraries.get(key) else { return false };
+        let data = app.state.options.get(key);
+        (0..lib.categories.len())
+            .filter(|&i| data.map_or(true, |d| lib.categories[i].should_show(d)))
+            .collect()
+    };
+    app.state.options.entry(key.to_string()).or_default();
     Grid::new(key).num_columns(2).spacing([8.0, 4.0]).show(ui, |ui| {
-        cats.iter().fold(false, |ch, cat| {
+        visible.iter().fold(false, |ch, &idx| {
+            // app.libraries (immut) and app.state.options (mut) are disjoint fields — OK.
+            let cat = &app.libraries.get(key).unwrap().categories[idx];
             ui.label(format!("{}:", cat.label));
-            let changed = data.get_mut(&cat.id).map_or(false, |cur| {
-                if cat.is_text_field                    { ui.text_edit_singleline(cur).changed() }
-                else if cat.has_search.unwrap_or(false) { render_searchable_dropdown(ui, cat, cur) }
-                else                                    { render_dropdown(ui, cat, cur) }
-            });
+            let changed = app.state.options.get_mut(key)
+                .and_then(|d| d.get_mut(&cat.id))
+                .map_or(false, |cur| {
+                    if cat.is_text_field                    { ui.text_edit_singleline(cur).changed() }
+                    else if cat.has_search.unwrap_or(false) { render_searchable_dropdown(ui, cat, cur) }
+                    else                                    { render_dropdown(ui, cat, cur) }
+                });
             ui.end_row();
             ch | changed
         })
@@ -78,10 +92,18 @@ fn render_searchable_dropdown(ui: &mut Ui, cat: &OptionCategory, current: &mut S
 }
 
 fn render_settings_panel(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> bool {
-    let Some(meta) = app.settings_meta.get(key).cloned() else { return false };
-    let data = app.state.settings.entry(key.to_string()).or_default();
+    // Count settings entries without cloning them.
+    let n = match app.settings_meta.get(key) {
+        Some(m) => m.settings.len(),
+        None => return false,
+    };
+    // Ensure entry exists before entering the Grid closure.
+    app.state.settings.entry(key.to_string()).or_default();
     Grid::new(key).num_columns(2).spacing([8.0, 4.0]).show(ui, |ui| {
-        meta.settings.iter().fold(false, |ch, s| {
+        (0..n).fold(false, |ch, idx| {
+            // app.settings_meta (immut) and app.state.settings (mut) are disjoint fields — OK.
+            let s    = &app.settings_meta.get(key).unwrap().settings[idx];
+            let data = app.state.settings.get_mut(key).unwrap();
             ui.label(format!("{}:", s.label));
             let changed = match s.setting_type.as_str() {
                 "slider" => {
@@ -118,10 +140,12 @@ fn render_component(ui: &mut Ui, key: &str, kind: &str, app: &mut PromptPuppetAp
 }
 
 fn render_simple_dropdown(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> bool {
-    let items = match app.preset_items.get(key).cloned() {
-        Some(v) if !v.is_empty() => v,
+    // Arc::clone is O(1) — gives an independent ref so we can mutate app.state freely below.
+    let items_arc = match app.preset_items.get(key) {
+        Some(v) if !v.is_empty() => Arc::clone(v),
         _ => return false,
     };
+    let items: &[crate::app::PresetItem] = &items_arc;
     let sel   = app.state.selections.entry(key.to_string()).or_default();
     let cur   = sel.selected.first().cloned().unwrap_or_default();
     let label = items.iter().find(|i| i.id == cur).map(|i| i.name.clone()).unwrap_or_else(|| "Select...".into());
@@ -158,8 +182,13 @@ fn render_simple_dropdown(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> 
 
 fn render_preset_selector(ui: &mut Ui, key: &str, app: &mut PromptPuppetApp) -> bool {
     let meta  = app.preset_metadata.get(key).cloned();
-    let items = app.preset_items.get(key).cloned().unwrap_or_default();
-    if items.is_empty() { return false; }
+    // Arc::clone is O(1) — gives an independent reference so app.state/search/popup_open
+    // can all be mutated freely below without conflicting with the items borrow.
+    let items_arc = match app.preset_items.get(key) {
+        Some(v) if !v.is_empty() => Arc::clone(v),
+        _ => return false,
+    };
+    let items: &[crate::app::PresetItem] = &items_arc;
 
     let allow_multi  = meta.as_ref().map_or(false, |m| m.allow_multi(app.state.video_mode));
     let has_search   = meta.as_ref().and_then(|m| m.has_search).unwrap_or(false);

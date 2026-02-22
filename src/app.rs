@@ -1,6 +1,7 @@
 use egui::{Context, CentralPanel, SidePanel, TopBottomPanel, ScrollArea, RichText, Key};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, hash_map::DefaultHasher};
+use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use crate::{pose::Pose, prompt::PromptGenerator,
@@ -32,6 +33,14 @@ impl OptionsData {
     pub fn get_mut(&mut self, id: &str) -> Option<&mut String> { self.values.get_mut(id) }
 }
 
+impl std::hash::Hash for OptionsData {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let mut pairs: Vec<_> = self.values.iter().collect();
+        pairs.sort_unstable_by_key(|(k, _)| k.as_str());
+        for (k, v) in pairs { k.hash(state); v.hash(state); }
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Settings {
     #[serde(flatten)] pub values: HashMap<String, serde_json::Value>,
@@ -42,10 +51,18 @@ impl Settings {
     }
 }
 
+impl std::hash::Hash for Settings {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let mut pairs: Vec<_> = self.values.iter().collect();
+        pairs.sort_unstable_by_key(|(k, _)| k.as_str());
+        // serde_json::Value doesn't implement Hash; .to_string() is compact and correct.
+        for (k, v) in pairs { k.hash(state); v.to_string().hash(state); }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PresetItem {
-    pub id: String, pub name: String, pub description: String,
-    pub tags: Vec<String>,
+    pub id: String, pub name: String,
     #[serde(skip)] pub pose_data: Option<Pose>,
     pub prompt: Option<String>,
     pub allow_custom: bool,
@@ -53,6 +70,13 @@ pub struct PresetItem {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SelectionState { pub selected: Vec<String>, pub sequence: Vec<String> }
+
+impl std::hash::Hash for SelectionState {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.selected.hash(state);
+        self.sequence.hash(state);
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct PresetMetadata {
@@ -79,6 +103,25 @@ pub struct AppState {
     #[serde(default)] pub custom_data: HashMap<String, String>,
 }
 
+impl std::hash::Hash for AppState {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.pose.hash(state);
+        self.video_mode.hash(state);
+        let mut v: Vec<_> = self.options.iter().collect();
+        v.sort_unstable_by_key(|(k, _)| k.as_str());
+        for (k, d) in v { k.hash(state); d.hash(state); }
+        let mut v: Vec<_> = self.settings.iter().collect();
+        v.sort_unstable_by_key(|(k, _)| k.as_str());
+        for (k, d) in v { k.hash(state); d.hash(state); }
+        let mut v: Vec<_> = self.selections.iter().collect();
+        v.sort_unstable_by_key(|(k, _)| k.as_str());
+        for (k, d) in v { k.hash(state); d.hash(state); }
+        let mut v: Vec<_> = self.custom_data.iter().collect();
+        v.sort_unstable_by_key(|(k, _)| k.as_str());
+        for (k, d) in v { k.hash(state); d.hash(state); }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SavedState { pub name: String, pub timestamp: String, pub state: AppState }
 
@@ -86,7 +129,7 @@ pub struct PromptPuppetApp {
     pub state:            AppState,
     pub libraries:        HashMap<String, OptionsLibrary>,
     pub settings_meta:    HashMap<String, SettingsLibrary>,
-    pub preset_items:     HashMap<String, Vec<PresetItem>>,
+    pub preset_items:     HashMap<String, Arc<Vec<PresetItem>>>,
     pub preset_metadata:  HashMap<String, PresetMetadata>,
     pub default_pose:     Pose,
     pub dragging_joint_3d: Option<String>,
@@ -95,7 +138,7 @@ pub struct PromptPuppetApp {
     pub generated_prompt: String,
     pub status_message:   String,
     pub status_timer:     f32,
-    pub ui_config:        crate::json_loader::UiConfig,
+    pub ui_config:        Arc<crate::json_loader::UiConfig>,
     state_hash:           u64,
     pub dark_mode:        bool,
     pub save_dialog:      Option<String>,
@@ -155,7 +198,7 @@ fn timestamp() -> String {
     format!("{y}-{mo:02}-{day:02}  {hour:02}:{min:02}")
 }
 
-fn load_preset_library(key: &str, path: &str, items: &mut HashMap<String, Vec<PresetItem>>,
+fn load_preset_library(key: &str, path: &str, items: &mut HashMap<String, Arc<Vec<PresetItem>>>,
     meta: &mut HashMap<String, PresetMetadata>, cx: f32, cy: f32,
     selections: &mut HashMap<String, SelectionState>)
 {
@@ -164,7 +207,7 @@ fn load_preset_library(key: &str, path: &str, items: &mut HashMap<String, Vec<Pr
         let pose_data = gi.to_pose(cx, cy, 40.0);
         PresetItem {
             id: gi.id.clone(), name: if gi.name.is_empty() { gi.id.clone() } else { gi.name },
-            description: gi.description, tags: gi.tags, pose_data,
+            pose_data,
             prompt: gi.prompt.or_else(|| gi.semantics.map(|s| s.prompt)),
             allow_custom: false,
         }
@@ -173,12 +216,11 @@ fn load_preset_library(key: &str, path: &str, items: &mut HashMap<String, Vec<Pr
         if let Some(sl) = load_or_warn::<StylesLibrary>(path) {
             list = sl.styles.iter().map(|s| PresetItem {
                 id: s.id.clone(), name: s.name.clone(),
-                description: format!("{}\nNegative: {}", s.positive, s.negative),
-                tags: vec![], pose_data: None, prompt: Some(s.positive.clone()), allow_custom: false,
+                pose_data: None, prompt: Some(s.positive.clone()), allow_custom: false,
             }).collect();
             list.push(PresetItem {
-                id: "Custom".into(), name: "Custom".into(), description: String::new(),
-                tags: vec![], pose_data: None, prompt: None, allow_custom: true,
+                id: "Custom".into(), name: "Custom".into(),
+                pose_data: None, prompt: None, allow_custom: true,
             });
         }
     }
@@ -191,7 +233,7 @@ fn load_preset_library(key: &str, path: &str, items: &mut HashMap<String, Vec<Pr
         has_search: lib.has_search, multiple_selection: lib.multiple_selection,
         use_grid: lib.use_grid, allow_custom: None, include_prompt: lib.include_prompt,
     });
-    items.insert(key.into(), list);
+    items.insert(key.into(), Arc::new(list));
 }
 
 impl Default for PromptPuppetApp {
@@ -258,11 +300,12 @@ impl Default for PromptPuppetApp {
         let state = AppState { options, settings, pose: default_pose.clone(),
             video_mode: false, selections, custom_data: HashMap::new() };
         Self {
-            state, libraries, settings_meta, preset_items, preset_metadata, default_pose,
+            state, libraries, settings_meta, preset_items,
+            preset_metadata, default_pose,
             dragging_joint_3d: None,
             search: HashMap::new(), popup_open: HashMap::new(),
             generated_prompt: String::new(), status_message: String::new(),
-            status_timer: 0.0, ui_config, state_hash: 0, dark_mode,
+            status_timer: 0.0, ui_config: Arc::new(ui_config), state_hash: 0, dark_mode,
             save_dialog: None, load_dialog: false, saves: load_saves(),
             camera_3d: Camera3D::default(),
             pose_is_manual: false,
@@ -485,8 +528,7 @@ impl eframe::App for PromptPuppetApp {
             }
         }
         if self.load_dialog {
-            let snap = self.saves.clone();
-            if let Some(action) = show_load_dialog(ctx, self.dark_mode, &snap) {
+            if let Some(action) = show_load_dialog(ctx, self.dark_mode, &self.saves) {
                 match action {
                     DialogAction::Load(i)   => { self.do_load(i);   self.load_dialog = false; }
                     DialogAction::Delete(i) => self.do_delete(i),
@@ -601,19 +643,17 @@ impl eframe::App for PromptPuppetApp {
             // second update_prompt() — pose changed intentionally, already rebuilt.
             {
                 let mut h = DefaultHasher::new();
-                format!("{:?}", self.state).hash(&mut h);
+                self.state.hash(&mut h);
                 self.state_hash = h.finish();
             }
             ctx.request_repaint();
         }
 
         // Change detection: rebuild the prompt only when AppState actually changes.
-        // format!("{:?}") is used because AppState contains HashMaps and serde_json::Value
-        // which don't implement Hash, so a derive isn't possible without a third-party crate.
-        // Cost is acceptable here: this branch is skipped entirely during dance mode (hash is
-        // kept in sync inline above), and on normal frames it only allocates when the user
-        // actually interacts with a control.
-        let h = { let mut h = DefaultHasher::new(); format!("{:?}", self.state).hash(&mut h); h.finish() };
+        // AppState now implements Hash directly (sorted HashMap iteration +
+        // serde_json::Value.to_string() for settings), so this is allocation-free
+        // at idle — no longer pays for format!("{:?}") every frame.
+        let h = { let mut h = DefaultHasher::new(); self.state.hash(&mut h); h.finish() };
         if h != self.state_hash { self.state_hash = h; self.update_prompt(); }
 
         if self.status_timer > 0.0 {

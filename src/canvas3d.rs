@@ -205,7 +205,7 @@ pub fn draw_3d_canvas(ui: &mut Ui, pose: &mut Pose, cam: &mut Camera3D, size: Ve
     };
 
     struct Draw { a:Pos2, b:Pos2, z:f32, c:Color32, is_j:bool, r:f32, hovered:bool }
-    let mut draws: Vec<Draw> = Vec::new();
+    let mut draws: Vec<Draw> = Vec::with_capacity(sk.bones.len() + sk.joints.len());
 
     for bone in &sk.bones {
         if let (Some(ja),Some(jb)) = (get(pose,&bone.a),get(pose,&bone.b)) {

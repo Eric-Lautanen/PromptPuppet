@@ -52,7 +52,11 @@ pub struct StylesLibrary {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct StyleEntry { pub id: String, pub name: String, pub positive: String, pub negative: String }
+pub struct StyleEntry {
+    pub id: String, pub name: String,
+    pub positive: String,
+    #[serde(skip)] pub negative: String,  // never used in prompt generation; skip deserialization
+}
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SettingsLibrary {
@@ -106,8 +110,8 @@ pub struct GenericItem {
     #[serde(alias = "term")]
     pub id: String,
     #[serde(default)] pub name: String,
-    #[serde(default)] pub description: String,
-    #[serde(default)] pub tags: Vec<String>,
+    #[serde(skip)]    pub description: String,   // never used after load; skip deserialization
+    #[serde(skip)]    pub tags: Vec<String>,      // never used after load; skip deserialization
     #[serde(default)] pub prompt: Option<String>,
     #[serde(default)] pub stick_figure: Option<StickFigure>,
     #[serde(default)] pub semantics: Option<Semantics>,

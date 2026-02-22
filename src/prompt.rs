@@ -1,4 +1,5 @@
 // prompt.rs
+use std::sync::Arc;
 use crate::app::{AppState, PresetItem};
 use crate::json_loader::{OptionsLibrary, UiConfig};
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ pub struct PromptGenerator<'a> {
     state:           &'a AppState,
     libraries:       &'a HashMap<String, OptionsLibrary>,
     settings_meta:   &'a HashMap<String, crate::json_loader::SettingsLibrary>,
-    presets:         &'a HashMap<String, Vec<PresetItem>>,
+    presets:         &'a HashMap<String, Arc<Vec<PresetItem>>>,
     preset_metadata: &'a HashMap<String, crate::app::PresetMetadata>,
     ui_config:       &'a UiConfig,
     video_mode:      bool,
@@ -19,7 +20,7 @@ impl<'a> PromptGenerator<'a> {
         state: &'a AppState,
         libraries: &'a HashMap<String, OptionsLibrary>,
         settings_meta: &'a HashMap<String, crate::json_loader::SettingsLibrary>,
-        presets: &'a HashMap<String, Vec<PresetItem>>,
+        presets: &'a HashMap<String, Arc<Vec<PresetItem>>>,
         preset_metadata: &'a HashMap<String, crate::app::PresetMetadata>,
         ui_config: &'a UiConfig,
         pose_is_manual: bool,
